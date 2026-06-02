@@ -1,0 +1,938 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>INCRA · NTsec — Gestão de Projeto</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet"/>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#06090f;--s1:#0c1220;--s2:#111a2e;--s3:#162035;--border:#1c2d47;--b2:#243a58;
+  --cyan:#00d4ff;--cyana:rgba(0,212,255,.12);--purple:#8b5cf6;--purplea:rgba(139,92,246,.12);
+  --green:#10b981;--greena:rgba(16,185,129,.12);
+  --yellow:#f59e0b;--yellowa:rgba(245,158,11,.12);
+  --red:#ef4444;--reda:rgba(239,68,68,.12);
+  --orange:#f97316;--orangea:rgba(249,115,22,.12);
+  --t1:#e2e8f0;--t2:#94a3b8;--t3:#475569;
+  --font:'Space Grotesk',sans-serif;--mono:'JetBrains Mono',monospace;
+  --r:10px;--r2:14px;--shadow:0 4px 24px rgba(0,0,0,.4)
+}
+html,body{height:100%;overflow-x:hidden}
+body{background:var(--bg);color:var(--t1);font-family:var(--font);font-size:14px;line-height:1.5}
+body::before{content:'';position:fixed;inset:0;
+  background:radial-gradient(ellipse 80% 50% at 20% -10%,rgba(0,212,255,.04) 0,transparent 60%),
+             radial-gradient(ellipse 60% 40% at 80% 110%,rgba(139,92,246,.04) 0,transparent 60%);
+  pointer-events:none;z-index:0}
+
+/* ─ Layout ─ */
+.shell{display:flex;height:100vh;overflow:hidden;position:relative;z-index:1}
+
+/* ─ Sidebar ─ */
+.sidebar{width:240px;flex-shrink:0;background:var(--s1);border-right:1px solid var(--border);
+  display:flex;flex-direction:column;overflow-y:auto}
+.logo{padding:24px 20px 20px;border-bottom:1px solid var(--border)}
+.logo-eyebrow{font-family:var(--mono);font-size:9px;letter-spacing:.2em;color:var(--t3);text-transform:uppercase;margin-bottom:6px}
+.logo-name{font-size:18px;font-weight:700;color:var(--t1);line-height:1.2}
+.logo-name em{font-style:normal;color:var(--cyan)}
+.logo-sub{font-size:11px;color:var(--t3);margin-top:4px}
+.nav{padding:16px 12px;flex:1}
+.nav-section{font-family:var(--mono);font-size:9px;letter-spacing:.18em;color:var(--t3);
+  text-transform:uppercase;padding:0 8px;margin:16px 0 6px}
+.nav-item{display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:8px;
+  cursor:pointer;color:var(--t2);font-size:13px;font-weight:500;transition:.15s;
+  border:1px solid transparent;margin-bottom:2px}
+.nav-item:hover{background:var(--s2);color:var(--t1)}
+.nav-item.active{background:var(--cyana);color:var(--cyan);border-color:rgba(0,212,255,.2)}
+.nav-icon{font-size:15px;width:20px;text-align:center;flex-shrink:0}
+.nav-badge{margin-left:auto;background:var(--s3);color:var(--t2);font-family:var(--mono);
+  font-size:10px;padding:1px 7px;border-radius:99px;border:1px solid var(--border)}
+.nav-item.active .nav-badge{background:rgba(0,212,255,.15);color:var(--cyan);border-color:rgba(0,212,255,.3)}
+.sidebar-footer{padding:16px;border-top:1px solid var(--border)}
+.sync-btn{width:100%;padding:9px;background:var(--s2);border:1px solid var(--border);border-radius:8px;
+  color:var(--t2);font-family:var(--font);font-size:12px;cursor:pointer;transition:.2s;
+  display:flex;align-items:center;justify-content:center;gap:6px}
+.sync-btn:hover{border-color:var(--cyan);color:var(--cyan)}
+
+/* ─ Main ─ */
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden}
+.topbar{height:56px;flex-shrink:0;background:var(--s1);border-bottom:1px solid var(--border);
+  display:flex;align-items:center;justify-content:space-between;padding:0 28px;gap:16px}
+.topbar-title{font-size:15px;font-weight:600;color:var(--t1)}
+.topbar-right{display:flex;align-items:center;gap:12px}
+.live{display:flex;align-items:center;gap:6px;font-family:var(--mono);font-size:11px;color:var(--green)}
+.live-dot{width:6px;height:6px;border-radius:50%;background:var(--green);animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.5;transform:scale(1.3)}}
+.date{font-family:var(--mono);font-size:11px;color:var(--t3)}
+.content{flex:1;overflow-y:auto;padding:24px 28px 48px}
+
+/* ─ Views ─ */
+.view{display:none}.view.active{display:block;animation:fadeUp .25s ease}
+@keyframes fadeUp{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+
+/* ─ Page header ─ */
+.page-head{margin-bottom:24px}
+.page-head h2{font-size:22px;font-weight:700;color:var(--t1);margin-bottom:4px}
+.page-head p{font-size:13px;color:var(--t3)}
+.page-head-row{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap}
+
+/* ─ KPI Cards ─ */
+.kpi-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:14px;margin-bottom:24px}
+.kpi{background:var(--s1);border:1px solid var(--border);border-radius:var(--r2);padding:18px 20px;position:relative;overflow:hidden;transition:.2s}
+.kpi:hover{transform:translateY(-2px);box-shadow:var(--shadow)}
+.kpi::after{content:'';position:absolute;bottom:0;left:0;right:0;height:2px}
+.kpi.c-cyan::after{background:var(--cyan)}.kpi.c-green::after{background:var(--green)}
+.kpi.c-yellow::after{background:var(--yellow)}.kpi.c-orange::after{background:var(--orange)}
+.kpi.c-purple::after{background:var(--purple)}.kpi.c-red::after{background:var(--red)}
+.kpi-label{font-size:10px;font-weight:500;letter-spacing:.1em;text-transform:uppercase;color:var(--t3);margin-bottom:10px}
+.kpi-value{font-size:32px;font-weight:700;line-height:1;font-family:var(--mono)}
+.kpi.c-cyan .kpi-value{color:var(--cyan)}.kpi.c-green .kpi-value{color:var(--green)}
+.kpi.c-yellow .kpi-value{color:var(--yellow)}.kpi.c-orange .kpi-value{color:var(--orange)}
+.kpi.c-purple .kpi-value{color:var(--purple)}.kpi.c-red .kpi-value{color:var(--red)}
+.kpi-sub{font-size:11px;color:var(--t3);margin-top:6px}
+.kpi-bar{height:3px;background:var(--s3);border-radius:99px;margin-top:10px;overflow:hidden}
+.kpi-bar-fill{height:100%;border-radius:99px;transition:width .8s cubic-bezier(.4,0,.2,1)}
+.kpi.c-cyan .kpi-bar-fill{background:var(--cyan)}.kpi.c-green .kpi-bar-fill{background:var(--green)}
+.kpi.c-yellow .kpi-bar-fill{background:var(--yellow)}
+
+/* ─ Section ─ */
+.section{background:var(--s1);border:1px solid var(--border);border-radius:var(--r2);margin-bottom:20px;overflow:hidden}
+.sec-head{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--border);gap:12px;flex-wrap:wrap}
+.sec-title{font-size:13px;font-weight:600;color:var(--t1);display:flex;align-items:center;gap:8px}
+.sec-title::before{content:'';display:block;width:3px;height:14px;border-radius:2px;background:var(--cyan)}
+.sec-body{padding:0}
+
+/* ─ Table ─ */
+.tbl-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:12.5px}
+thead th{background:var(--s2);padding:10px 16px;text-align:left;font-family:var(--mono);
+  font-size:10px;font-weight:500;letter-spacing:.1em;color:var(--t3);text-transform:uppercase;
+  border-bottom:1px solid var(--border);white-space:nowrap;position:sticky;top:0;z-index:2}
+tbody tr{border-bottom:1px solid rgba(28,45,71,.6);transition:.12s}
+tbody tr:last-child{border-bottom:none}
+tbody tr:hover{background:rgba(255,255,255,.025)}
+td{padding:11px 16px;vertical-align:middle}
+.td-main{font-weight:500;color:var(--t1);line-height:1.3}
+.td-sub{font-size:11px;color:var(--t3);margin-top:1px}
+.td-mono{font-family:var(--mono);font-size:11px;color:var(--t2)}
+.col-num{color:var(--t3);font-family:var(--mono);font-size:11px}
+
+/* ─ Badge ─ */
+.badge{display:inline-flex;align-items:center;gap:4px;padding:2px 9px;border-radius:99px;font-size:10px;font-weight:600;letter-spacing:.06em;white-space:nowrap}
+.bg{background:var(--greena);color:var(--green);border:1px solid rgba(16,185,129,.25)}
+.bc{background:var(--cyana);color:var(--cyan);border:1px solid rgba(0,212,255,.25)}
+.by{background:var(--yellowa);color:var(--yellow);border:1px solid rgba(245,158,11,.25)}
+.bo{background:var(--orangea);color:var(--orange);border:1px solid rgba(249,115,22,.25)}
+.br{background:var(--reda);color:var(--red);border:1px solid rgba(239,68,68,.25)}
+.bm{background:var(--s2);color:var(--t3);border:1px solid var(--border)}
+.bp{background:var(--purplea);color:var(--purple);border:1px solid rgba(139,92,246,.25)}
+
+/* ─ Progress ─ */
+.prog-wrap{display:flex;align-items:center;gap:8px;min-width:110px}
+.prog-bar{flex:1;height:4px;background:var(--s3);border-radius:99px;overflow:hidden}
+.prog-fill{height:100%;border-radius:99px;transition:width .6s ease}
+.prog-pct{font-family:var(--mono);font-size:11px;font-weight:500;width:32px;text-align:right;flex-shrink:0}
+
+/* ─ Inline status select ─ */
+.sel-status{background:transparent;border:none;font-family:var(--mono);font-size:11px;
+  cursor:pointer;outline:none;padding:0;min-width:90px}
+
+/* ─ Filters ─ */
+.filters{display:flex;gap:8px;flex-wrap:wrap;padding:16px 20px;border-bottom:1px solid var(--border);align-items:center}
+.fi{background:var(--s2);border:1px solid var(--border);color:var(--t1);
+  border-radius:8px;padding:7px 12px;font-family:var(--font);font-size:12px;outline:none;transition:.2s}
+.fi:focus{border-color:var(--cyan)}
+.fi-search{min-width:220px}
+select.fi{cursor:pointer;min-width:140px}
+.fi-count{font-family:var(--mono);font-size:11px;color:var(--t3);margin-left:auto}
+
+/* ─ Buttons ─ */
+.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:8px;
+  font-family:var(--font);font-size:12px;font-weight:600;cursor:pointer;border:none;transition:.2s;white-space:nowrap}
+.btn-primary{background:var(--cyan);color:#000}
+.btn-primary:hover{background:#33dcff;transform:translateY(-1px)}
+.btn-ghost{background:transparent;color:var(--cyan);border:1px solid rgba(0,212,255,.35)}
+.btn-ghost:hover{background:var(--cyana)}
+.btn-danger{background:var(--reda);color:var(--red);border:1px solid rgba(239,68,68,.3)}
+.btn-danger:hover{background:rgba(239,68,68,.2)}
+.btn-sm{padding:5px 10px;font-size:11px;gap:4px}
+.btn-success{background:var(--greena);color:var(--green);border:1px solid rgba(16,185,129,.3)}
+
+/* ─ Timeline ─ */
+.tl-phase{margin-bottom:6px}
+.tl-ph-head{display:flex;align-items:center;gap:10px;padding:11px 16px;background:var(--s2);
+  border-radius:10px;cursor:pointer;border:1px solid var(--border);transition:.15s;user-select:none}
+.tl-ph-head:hover{border-color:var(--b2)}
+.tl-ph-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0}
+.tl-ph-name{font-size:13px;font-weight:600;flex:1;color:var(--t1)}
+.tl-ph-stats{font-family:var(--mono);font-size:10px;color:var(--t3)}
+.tl-ph-prog{display:flex;align-items:center;gap:8px;min-width:100px}
+.tl-ph-prog .prog-bar{width:60px}
+.tl-ph-arrow{font-size:12px;color:var(--t3);transition:transform .2s;margin-left:4px}
+.tl-ph-head.open .tl-ph-arrow{transform:rotate(90deg)}
+.tl-items{display:none;padding:4px 0 4px 28px;border-left:1px solid var(--border);margin:3px 0 3px 20px}
+.tl-items.open{display:block}
+.tl-item{display:grid;grid-template-columns:1fr 50px 150px 100px 120px auto;gap:10px;
+  align-items:center;padding:9px 12px;border-radius:8px;transition:.12s;font-size:12px}
+.tl-item:hover{background:rgba(255,255,255,.025)}
+.tl-item-name{color:var(--t1);font-weight:500}
+.tl-item-time{font-family:var(--mono);font-size:10px;color:var(--t3);text-align:center}
+.tl-item-resp{font-size:11px;color:var(--t3)}
+.tl-item-date{font-family:var(--mono);font-size:10px;color:var(--t3)}
+.tl-item-actions{display:flex;gap:4px;opacity:0;transition:.15s}
+.tl-item:hover .tl-item-actions{opacity:1}
+
+/* ─ Cards ─ */
+.cards-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px;padding:20px}
+.card{background:var(--s2);border:1px solid var(--border);border-radius:var(--r2);padding:20px;
+  transition:.2s;position:relative;overflow:hidden}
+.card:hover{border-color:var(--b2);transform:translateY(-2px);box-shadow:var(--shadow)}
+.card-num{font-family:var(--mono);font-size:10px;color:var(--t3);letter-spacing:.1em;margin-bottom:8px}
+.card-title{font-size:14px;font-weight:700;color:var(--cyan);margin-bottom:10px;line-height:1.35}
+.card-desc{font-size:12px;color:var(--t2);line-height:1.65;margin-bottom:12px}
+.card-prox-label{font-family:var(--mono);font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--t3);margin-bottom:4px}
+.card-prox{font-size:11px;color:var(--t1);line-height:1.6}
+.card-footer{display:flex;align-items:center;justify-content:space-between;margin-top:14px;
+  padding-top:14px;border-top:1px solid var(--border);gap:8px;flex-wrap:wrap}
+.card-tags{display:flex;gap:5px;flex-wrap:wrap}
+.card-actions{display:flex;gap:5px}
+
+/* ─ Done table row ─ */
+.done-num{background:var(--greena);color:var(--green);border-radius:6px;width:24px;height:24px;
+  display:inline-flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:11px;font-weight:700}
+
+/* ─ Progress bars (dashboard) ─ */
+.dash-prog-row{display:grid;grid-template-columns:170px 44px 1fr 52px;gap:12px;
+  align-items:center;padding:10px 0}
+.dash-prog-row+.dash-prog-row{border-top:1px solid rgba(28,45,71,.5)}
+.dash-prog-label{font-size:12px;font-weight:500;color:var(--t1)}
+.dash-prog-count{font-family:var(--mono);font-size:14px;font-weight:700;text-align:right}
+.dash-prog-pct{font-family:var(--mono);font-size:11px;color:var(--t3);text-align:right}
+.dash-prog-bar{height:6px;background:var(--s3);border-radius:99px;overflow:hidden}
+.dash-prog-fill{height:100%;border-radius:99px;transition:width .8s ease}
+
+/* ─ State grid ─ */
+.state-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:8px;padding:16px}
+.state-card{background:var(--s2);border:1px solid var(--border);border-radius:8px;padding:12px;text-align:center;transition:.15s}
+.state-card:hover{border-color:var(--b2)}
+.state-uf{font-family:var(--mono);font-size:13px;font-weight:700;color:var(--cyan);margin-bottom:4px}
+.state-count{font-size:20px;font-weight:700;font-family:var(--mono);color:var(--t1)}
+.state-sub{font-size:9px;color:var(--t3);text-transform:uppercase;letter-spacing:.08em;margin-top:2px}
+
+/* ─ Modal ─ */
+.overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);
+  backdrop-filter:blur(8px);z-index:999;align-items:center;justify-content:center;padding:20px}
+.overlay.open{display:flex}
+.modal{background:var(--s1);border:1px solid var(--border);border-radius:16px;padding:28px;
+  width:100%;max-width:560px;max-height:92vh;overflow-y:auto;animation:modalIn .22s ease;
+  box-shadow:0 24px 80px rgba(0,0,0,.6)}
+@keyframes modalIn{from{opacity:0;transform:scale(.96) translateY(8px)}to{opacity:1;transform:scale(1) translateY(0)}}
+.modal-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:22px}
+.modal-title{font-size:16px;font-weight:700;color:var(--t1)}
+.modal-title span{color:var(--cyan)}
+.modal-x{background:none;border:none;color:var(--t3);font-size:18px;cursor:pointer;
+  transition:.15s;line-height:1;width:28px;height:28px;display:flex;align-items:center;justify-content:center;border-radius:6px}
+.modal-x:hover{background:var(--s2);color:var(--t1)}
+.frow{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.fgrp{margin-bottom:14px}
+.flabel{display:block;font-size:10px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;
+  color:var(--t3);margin-bottom:6px}
+.finput,.fsel,.ftxt{width:100%;background:var(--s2);border:1px solid var(--border);color:var(--t1);
+  border-radius:8px;padding:9px 12px;font-family:var(--font);font-size:13px;outline:none;transition:.2s}
+.finput:focus,.fsel:focus,.ftxt:focus{border-color:var(--cyan);background:var(--s3)}
+.ftxt{resize:vertical;min-height:80px;line-height:1.5}
+.fsel{cursor:pointer}
+.modal-footer{display:flex;justify-content:flex-end;gap:8px;margin-top:20px;padding-top:18px;border-top:1px solid var(--border)}
+
+/* ─ Toast ─ */
+.toasts{position:fixed;bottom:20px;right:20px;display:flex;flex-direction:column;gap:8px;z-index:9999;pointer-events:none}
+.toast{background:var(--s2);border:1px solid var(--border);border-radius:10px;padding:11px 16px;
+  font-size:12px;display:flex;align-items:center;gap:9px;pointer-events:auto;
+  box-shadow:0 8px 24px rgba(0,0,0,.5);animation:toastIn .25s ease;max-width:280px}
+.toast.ok{border-left:2px solid var(--green)}.toast.err{border-left:2px solid var(--red)}
+.toast.warn{border-left:2px solid var(--yellow)}
+@keyframes toastIn{from{opacity:0;transform:translateX(20px)}to{opacity:1;transform:translateX(0)}}
+
+/* ─ Responsive ─ */
+@media(max-width:860px){
+  .sidebar{width:56px}.logo-eyebrow,.logo-name em,.logo-sub,.nav-section,.nav-item span:not(.nav-icon),.nav-badge{display:none}
+  .nav-item{justify-content:center;padding:10px}.content{padding:16px}
+  .tl-item{grid-template-columns:1fr auto}.tl-item-time,.tl-item-resp,.tl-item-date{display:none}
+  .frow{grid-template-columns:1fr}.dash-prog-row{grid-template-columns:130px 36px 1fr}
+  .dash-prog-pct{display:none}
+}
+
+/* ─ Empty ─ */
+.empty{text-align:center;padding:48px 20px;color:var(--t3)}
+.empty-icon{font-size:32px;margin-bottom:10px;opacity:.5}
+.empty-txt{font-size:13px}
+</style>
+</head>
+<body>
+<div class="shell">
+
+<!-- ── Sidebar ── -->
+<aside class="sidebar">
+  <div class="logo">
+    <div class="logo-eyebrow">Projeto</div>
+    <div class="logo-name">INCRA · <em>NTsec</em></div>
+    <div class="logo-sub">Gestão de Migração 2026</div>
+  </div>
+  <nav class="nav">
+    <div class="nav-section">Visão Geral</div>
+    <div class="nav-item active" data-view="dashboard"><span class="nav-icon">📊</span><span>Dashboard</span></div>
+    <div class="nav-section">Operacional</div>
+    <div class="nav-item" data-view="unidades"><span class="nav-icon">📋</span><span>Unidades</span><span class="nav-badge" id="nb-unidades">32</span></div>
+    <div class="nav-item" data-view="cronograma"><span class="nav-icon">📅</span><span>Cronograma</span><span class="nav-badge" id="nb-crono">294</span></div>
+    <div class="nav-section">Atividades</div>
+    <div class="nav-item" data-view="planejadas"><span class="nav-icon">🎯</span><span>Planejadas</span><span class="nav-badge" id="nb-plan">2</span></div>
+    <div class="nav-item" data-view="concluidas"><span class="nav-icon">✅</span><span>Concluídas</span><span class="nav-badge" id="nb-done">2</span></div>
+  </nav>
+  <div class="sidebar-footer">
+    <button class="sync-btn" onclick="exportJSON()">⬇ Exportar JSON</button>
+  </div>
+</aside>
+
+<!-- ── Main ── -->
+<div class="main">
+  <div class="topbar">
+    <div class="topbar-title" id="topTitle">Dashboard</div>
+    <div class="topbar-right">
+      <div class="live"><span class="live-dot"></span>LIVE</div>
+      <div class="date" id="clock"></div>
+    </div>
+  </div>
+  <div class="content">
+
+    <!-- ══ DASHBOARD ══ -->
+    <div class="view active" id="view-dashboard">
+      <div class="page-head"><h2>Visão Geral do Projeto</h2><p>INCRA · NTsec — Migração de Equipamentos · Atualizado em tempo real</p></div>
+      <div class="kpi-row" id="kpiRow"></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px">
+        <div class="section">
+          <div class="sec-head"><div class="sec-title">Progresso por Status</div></div>
+          <div class="sec-body" style="padding:16px 20px" id="dashStatus"></div>
+        </div>
+        <div class="section">
+          <div class="sec-head"><div class="sec-title">Entrega dos Equipamentos</div></div>
+          <div class="sec-body" style="padding:16px 20px" id="dashEntrega"></div>
+        </div>
+      </div>
+      <div class="section">
+        <div class="sec-head"><div class="sec-title">Distribuição por Estado</div></div>
+        <div class="sec-body" id="dashEstados"></div>
+      </div>
+    </div>
+
+    <!-- ══ UNIDADES ══ -->
+    <div class="view" id="view-unidades">
+      <div class="page-head-row page-head">
+        <div><h2>Status das Unidades</h2><p>32 Superintendências Regionais e unidades do INCRA</p></div>
+        <button class="btn btn-primary" onclick="openModal('addUnit')">+ Nova Unidade</button>
+      </div>
+      <div class="section">
+        <div class="filters">
+          <input class="fi fi-search" id="uSearch" placeholder="🔍  Buscar sigla, nome, cidade, analista…" oninput="renderUnidades()"/>
+          <select class="fi" id="uStatus" onchange="renderUnidades()">
+            <option value="">Todos os Status</option>
+            <option>Concluído</option><option>Em Andamento</option><option>Pendente</option>
+          </select>
+          <select class="fi" id="uEstado" onchange="renderUnidades()">
+            <option value="">Todos os Estados</option>
+          </select>
+          <select class="fi" id="uEntrega" onchange="renderUnidades()">
+            <option value="">Toda Entrega</option>
+            <option>Entregue</option><option>Em trânsito</option><option>Pendente de entrega</option>
+          </select>
+          <span class="fi-count" id="uCount"></span>
+        </div>
+        <div class="tbl-wrap">
+          <table>
+            <thead><tr>
+              <th>#</th><th>SIGLA SR</th><th>NOME DA UNIDADE</th><th>CIDADE / UF</th>
+              <th>ANALISTA NTI</th><th>QTDE</th><th>NF</th><th>ENTREGA</th>
+              <th>STATUS INST.</th><th>PROGRESSO</th><th></th>
+            </tr></thead>
+            <tbody id="unidadesBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ CRONOGRAMA ══ -->
+    <div class="view" id="view-cronograma">
+      <div class="page-head-row page-head">
+        <div><h2>Cronograma de Atividades</h2><p>294 atividades distribuídas em 36 fases / SRs</p></div>
+        <button class="btn btn-primary" onclick="openModal('addCrono')">+ Nova Atividade</button>
+      </div>
+      <div class="section">
+        <div class="filters">
+          <input class="fi fi-search" id="cSearch" placeholder="🔍  Buscar fase, atividade, responsável…" oninput="renderCronograma()"/>
+          <select class="fi" id="cStatus" onchange="renderCronograma()">
+            <option value="">Todos os Status</option>
+            <option>⏳ Pendente</option><option>🔄 Em Andamento</option><option>✅ Concluído</option>
+          </select>
+          <span class="fi-count" id="cCount"></span>
+        </div>
+        <div style="padding:12px 16px 16px" id="timeline"></div>
+      </div>
+    </div>
+
+    <!-- ══ PLANEJADAS ══ -->
+    <div class="view" id="view-planejadas">
+      <div class="page-head-row page-head">
+        <div><h2>Atividades Planejadas</h2><p>Próximos passos e ações priorizadas — NTsec + INCRA</p></div>
+        <button class="btn btn-primary" onclick="openModal('addPlanned')">+ Nova Atividade</button>
+      </div>
+      <div id="planCards" class="cards-grid"></div>
+    </div>
+
+    <!-- ══ CONCLUÍDAS ══ -->
+    <div class="view" id="view-concluidas">
+      <div class="page-head-row page-head">
+        <div><h2>Atividades Concluídas</h2><p>Registro histórico de entregas finalizadas</p></div>
+        <button class="btn btn-primary" onclick="openModal('addDone')">+ Registrar Conclusão</button>
+      </div>
+      <div class="section">
+        <div class="tbl-wrap">
+          <table>
+            <thead><tr><th>#</th><th>ATIVIDADE</th><th>DESCRIÇÃO</th><th>PERÍODO</th><th></th></tr></thead>
+            <tbody id="doneBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /content -->
+</div><!-- /main -->
+</div><!-- /shell -->
+
+<!-- ── Modal ── -->
+<div class="overlay" id="overlay" onclick="if(event.target===this)closeModal()">
+  <div class="modal">
+    <div class="modal-head">
+      <div class="modal-title" id="mTitle"></div>
+      <button class="modal-x" onclick="closeModal()">✕</button>
+    </div>
+    <div id="mBody"></div>
+  </div>
+</div>
+
+<!-- ── Toasts ── -->
+<div class="toasts" id="toasts"></div>
+
+<script>
+// ═══════════════════════════════════════════════════
+//  DATA  (extraído do arquivo INCRA_NTsec_Gestao_Projeto.xlsx)
+// ═══════════════════════════════════════════════════
+const SEED = {"unidades": [{"id": 1, "num": 31, "sigla": "UAE (PA/O) Altamira", "nome": "Unidade Avançada Especial de Altamira", "cidade": "Centro Altamira", "estado": "PA", "analista": "Matheus Rocha Moraes de Moura", "qtde": 2, "serie": "BA25825809 e BA25825546", "nf": "3843", "vol": "2", "entrega": "Entregue", "agend_e": "", "agend_c": "", "status": "Pendente", "progresso": 0, "analista2": ""}, {"id": 2, "num": 11, "sigla": "SR(11)RS", "nome": "Superintendência Regional do Rio Grande do Sul", "cidade": "Porto Alegre", "estado": "RS", "analista": "Carlos Azevedo Orth", "qtde": 2, "serie": "BA25825691 e BA25825770", "nf": "3853", "vol": "2", "entrega": "Entregue", "agend_e": "", "agend_c": "", "status": "Pendente", "progresso": 0, "analista2": ""}, {"id": 3, "num": 19, "sigla": "SR (19)RN", "nome": "Superintendência Regional do Rio Grande do Norte", "cidade": "Natal", "estado": "RN", "analista": "Jansen Ribeiro Cavalcante", "qtde": 2, "serie": "BA25825565 e BA25825647", "nf": "3860", "vol": "1", "entrega": "Entregue", "agend_e": "", "agend_c": "", "status": "Pendente", "progresso": 0, "analista2": ""}, {"id": 4, "num": 24, "sigla": "SR(24)PI", "nome": "Superintendência Regional do Piauí", "cidade": "Teresina", "estado": "PI", "analista": "Marcos César de Oliveira Silva", "qtde": 2, "serie": "BA25901133 e BA25901314", "nf": "3869", "vol": "2", "entrega": "Entregue", "agend_e": "", "agend_c": "", "status": "Pendente", "progresso": 0, "analista2": ""}, {"id": 5, "num": 9, "sigla": "SR(09)PR", "nome": "Superintendência Regional do Paraná", "cidade": "", "estado": "PR", "analista": "Jefferson Hanzen Marques", "qtde": 2, "serie": "BA25825640 e BA25825875", "nf": "3862", "vol": "1", "entrega": "Entregue", "agend_e": "", "agend_c": "", "status": "Concluído", "progresso": 100, "analista2": ""}, {"id": 6, "num": 27, "sigla": "SR(27)MBA", "nome": "Superintendência Regional Do Pará - Sudeste (Marabá)", "cidade": "Marabá", "estado": "PA", "analista": "Valmir Lira da Silva", "qtde": 2, "serie": "BA25825994 e BA25825518", "nf": "3863", "vol": "1", "entrega": "Entregue", "agend_e": "", "agend_c": "", "status": "Pendente", "progresso": 0, "analista2": ""}, {"id": 7, "num": 1, "sigla": "SR(01)PA", "nome": "Superintendência Regional do Nordeste do Pará (Belém)", "cidade": "Belém", "estado": "PA", "analista": "Marcelo Jose Cunha Arbage / Marcio Chucre dos Santos", "qtde": 2, "serie": "BA25825767 e BA25825642", "nf": "3864", "vol": "1", "entrega": "Entregue", "agend_e": "", "agend_c": "", "status": "Pendente", "progresso": 0, "analista2": ""}, {"id": 8, "num": 16, "sigla": "SR(16)MS", "nome": "Superintendência Regional do Mato Grosso do Sul", "cidade": "Campo Grande", "estado": "MS", "analista": "Heribaldo José Joaquim", "qtde": 2, "serie": "BA25825759 e BA25825651", "nf": "3842", "vol": "1", "entrega": "Entregue", "agend_e": "", "agend_c": "", "status": "Pendente", "progresso": 0, "analista2": ""}, {"id": 9, "num": 13, "sigla": "SR(13)MT", "nome": "Superintendência Regional do Mato Grosso", "cidade": "Cuiabá", "estado": "MT", "analista": "Cristiane Alencar de Oliveira Ferreira", "qtde": 2, "serie": "BA25825753 e BA25825714", "nf": "3865", "vol": "2", "entrega": "Entregue", "agend_e": "", "agend_c": "", "status": "Pendente", "progresso": 0, "analista2": ""}, {"id": 10, "num": 29, "sigla": "SR(29)MSF", "nome": "Superintendência Regional do Incra no Médio São Francisco", "cidade": "Bairro Jardim Colonial Petrolina", "estado": "PE", "analista": "Marcos Aurélio de Melo", "qtde": 2, "serie": "BA25900875 e BA25901027", "nf": "3866", "vol": "1", "entrega": "Entregue", "agend_e": "", "agend_c": "", "status": "Pendente", "progresso": 0, "analista2": ""}, {"id": 11, "num": 20, "sigla": "SR (20)ES", "nome": "Superintendência Regional do Espírito Santo", "cidade": "Vila Velha", "estado": "ES", "analista": "Lyncoln Wchoa da Silveira e Silva", "qtde": 2, "serie": "BA25825948 e BA25901089", "nf": "3854", "vol": "2", "entrega": "Entregue", "agend_e": "", "agend_c": "", "status": "Pendente", "progresso": 0, "analista2": ""}, {"id": 12, "num": 28, "sigla": "SR (28)DFE", "nome": "Superintendência Regional do Distrito Federal e Entorno", "cidade": "Brasília", "estado": "DF", "analista": "José Francisco do Nascimento Rocha", "qtde": 2, "serie": "BA25825819 e BA25825567", "nf": "", "vol": "", "entrega": "Entregue", "agend_e": "", "agend_c": "", "status": "Concluído", "progresso": 100, "analista2": ""}, {"id": 13, "num": 2, "sigla": "SR (02)CE", "nome": "Superintendência Regional do Ceará", "cidade": "Fortaleza", "estado": "CE", "analista": "Mariana Nogueira Melo Lima Costa", "qtde": 2, "serie": "BA25825795 e BA25825970", "nf": "3855", "vol": "1", "entrega": "Entregue", "agend_e": "", "agend_c": "", "status": "Pendente", "progresso": 0, "analista2": ""}, {"id": 14, "num": 21, "sigla": "SR (21)AP", "nome": "Superintendência Regional do Amapá", "cidade": "Macapá", "estado": "AP", "analista": "Marcio Cley Ferreira Cunha", "qtde": 2, "serie": "BA25825700 e BA25825641", "nf": "3856", "vol": "1", "entrega": "Entregue", "agend_e": "", "agend_c": "", "status": "Em Andamento", "progresso": 50, "analista2": ""}, {"id": 15, "num": 26, "sigla": "SR(26)TO", "nome": "Superintendência Regional de Tocantins", "cidade": "Palmas", "estado": "TO", "analista": "Pollyane de Almeida Lustosa", "qtde": 2, "serie": "BA25901817 e BA25825632", "nf": "3859", "vol": "2", "entrega": "Entregue", "agend_e": "", "agend_c": "", "status": "Pendente", "progresso": 0, "analista2": ""}, {"id": 16, "num": 23, "sigla": "SR(23)SE", "nome": "Superintendência Regional de Sergipe", "cidade": "Aracaju", "estado": "SE", "analista": "Euclides Luiz de Britto Filho / Wesley Teixeira Rodrigues de Menezes", "qtde": 2, "serie": "BA25901809 e BA25901929", "nf": "3857", "vol": "2", "entrega": "Entregue", "agend_e": "", "agend_c": "", "status": "Pendente", "progresso": 0, "analista2": ""}, {"id": 17, "num": 8, "sigla": "SR (08)SP", "nome": "Superintendência Regional de São Paulo", "cidade": "São Paulo", "estado": "SP", "analista": "Alberto Tadashi Fukuda / Carlos Eduardo Friedrich Napholez", "qtde": 2, "serie": "BA25901107 e BA25901933", "nf": "3858", "vol": "1", "entrega": "Entregue", "agend_e": "", "agend_c": "", "status": "Pendente", "progresso": 0, "analista2": ""}, {"id": 18, "num": 30, "sigla": "SR(30)STA", "nome": "Superintendência Regional de Santarém", "cidade": "Santarém", "estado": "PA", "analista": "Jacsirley da Silva Portela", "qtde": 2, "serie": "BA25901126 e BA25901124", "nf": "3868", "vol": "1", "entrega": "Entregue", "agend_e": "", "agend_c": "", "status": "Pendente", "progresso": 0, "analista2": ""}, {"id": 19, "num": 10, "sigla": "SR(10)SC", "nome": "Superintendência Regional de Santa Catarina", "cidade": "São José", "estado": "SC", "analista": "Claudio Roberto Simoes Rodrigues", "qtde": 2, "serie": "BA25901095 e BA25901854", "nf": "3845", "vol": "1", "entrega": "Entregue", "agend_e": "", "agend_c": "", "status": "Pendente", "progresso": 0, "analista2": ""}, {"id": 20, "num": 25, "sigla": "SR(25)RR", "nome": "Superintendência Regional de Roraima", "cidade": "Boa Vista", "estado": "RR", "analista": "Smayle Skar Cândido", "qtde": 2, "serie": "BA25901805 e BA25901911", "nf": "3846", "vol": "2", "entrega": "Entregue", "agend_e": "", "agend_c": "", "status": "Pendente", "progresso": 0, "analista2": ""}, {"id": 21, "num": 17, "sigla": "SR(17)RO", "nome": "Superintendência Regional de Rondônia", "cidade": "Porto Velho", "estado": "RO", "analista": "Claudinei Barreto da Silva / Celestino Rodrigues do Nascimento Neto", "qtde": 2, "serie": "BA25825898 e BA25825791", "nf": "3847", "vol": "2", "entrega": "Entregue", "agend_e": "", "agend_c": "", "status": "Pendente", "progresso": 0, "analista2": ""}, {"id": 22, "num": 3, "sigla": "SR(03)PE", "nome": "Superintendência Regional de Pernambuco", "cidade": "Recife", "estado": "PE", "analista": "Eric Bartolomeu Gomes de Lima", "qtde": 2, "serie": "BA25825780 e BA25825969", "nf": "3848", "vol": "2", "entrega": "Entregue", "agend_e": "", "agend_c": "", "status": "Pendente", "progresso": 0, "analista2": ""}, {"id": 23, "num": 6, "sigla": "SR(06)MG", "nome": "Superintendência Regional de Minas Gerais", "cidade": "Belo Horizonte", "estado": "MG", "analista": "José Carlos De Paula", "qtde": 2, "serie": "BA25825932 e BA25825596", "nf": "3849", "vol": "2", "entrega": "Entregue", "agend_e": "", "agend_c": "", "status": "Pendente", "progresso": 0, "analista2": ""}, {"id": 24, "num": 4, "sigla": "SR (04)GO", "nome": "Superintendência Regional de Goiás", "cidade": "Goiânia", "estado": "GO", "analista": "Marcelo de Sousa Cunha", "qtde": 2, "serie": "BA25901081 e BA25900801", "nf": "3850", "vol": "1", "entrega": "Entregue", "agend_e": "", "agend_c": "", "status": "Concluído", "progresso": 100, "analista2": ""}, {"id": 25, "num": 22, "sigla": "SR (22)AL", "nome": "Superintendência Regional de Alagoas", "cidade": "Maceió", "estado": "AL", "analista": "Aloisio Rodrigues da Costa", "qtde": 2, "serie": "BA25900855 e BA25900846", "nf": "3852", "vol": "2", "entrega": "Entregue", "agend_e": "", "agend_c": "", "status": "Concluído", "progresso": 100, "analista2": ""}, {"id": 26, "num": 18, "sigla": "SR (18)PB", "nome": "Superintendência Regional da Paraíba", "cidade": "João Pessoa", "estado": "PB", "analista": "Ellen Chrysler Souza da Silva", "qtde": 2, "serie": "BA25826000 e BA25825996", "nf": "3851", "vol": "2", "entrega": "Entregue", "agend_e": "", "agend_c": "", "status": "Pendente", "progresso": 0, "analista2": ""}, {"id": 27, "num": 64, "sigla": "SEDE-DF", "nome": "Sede do INCRA", "cidade": "Brasília", "estado": "DF", "analista": "Laércio Lucio Pereira Lima / Giovanni Ottoni de Carvalho", "qtde": 1, "serie": "BA25900840 RMA", "nf": "", "vol": "", "entrega": "Entregue", "agend_e": "", "agend_c": "", "status": "Pendente", "progresso": 0, "analista2": ""}, {"id": 28, "num": 69, "sigla": "SR 31 - SRFA/SECIPAN", "nome": "Sede do INCRA - SRFA/SECIPAN", "cidade": "Brasília", "estado": "DF", "analista": "Laércio Lucio Pereira Lima / Giovanni Ottoni de Carvalho", "qtde": 1, "serie": "BA25825896", "nf": "", "vol": "", "entrega": "Entregue", "agend_e": "", "agend_c": "", "status": "Pendente", "progresso": 0, "analista2": ""}, {"id": 29, "num": 77, "sigla": "SRFA07 - SRFA BLM", "nome": "Sede do INCRA - SRFA BLM", "cidade": "Belém", "estado": "DF", "analista": "Laércio Lucio Pereira Lima / Giovanni Ottoni de Carvalho", "qtde": 2, "serie": "BA25825719 e BA25825710", "nf": "", "vol": "", "entrega": "Entregue", "agend_e": "", "agend_c": "", "status": "Pendente", "progresso": 0, "analista2": ""}, {"id": 30, "num": 71, "sigla": "SRFA01 - STM", "nome": "Sede do INCRA - STM", "cidade": "Porto Velho", "estado": "DF", "analista": "Laércio Lucio Pereira Lima / Giovanni Ottoni de Carvalho", "qtde": 2, "serie": "BA25825885 e BA25825906", "nf": "", "vol": "", "entrega": "Entregue", "agend_e": "", "agend_c": "", "status": "Pendente", "progresso": 0, "analista2": ""}, {"id": 31, "num": 75, "sigla": "SRFA06 - SRFA PVO", "nome": "Sede do INCRA - SRFA PVO", "cidade": "Porto Velho", "estado": "DF", "analista": "Laércio Lucio Pereira Lima / Giovanni Ottoni de Carvalho", "qtde": 2, "serie": "BA25901127 e BA25901858", "nf": "", "vol": "", "entrega": "Entregue", "agend_e": "", "agend_c": "", "status": "Pendente", "progresso": 0, "analista2": ""}, {"id": 32, "num": 78, "sigla": "SRFA10 - SRFA BVA", "nome": "Sede do INCRA - SRFA BVA", "cidade": "Boa Vista", "estado": "DF", "analista": "Laércio Lucio Pereira Lima / Giovanni Ottoni de Carvalho", "qtde": 2, "serie": "BA25825833 e BA25901147", "nf": "", "vol": "", "entrega": "Entregue", "agend_e": "", "agend_c": "", "status": "Pendente", "progresso": 0, "analista2": ""}], "cronograma": [{"id": 1, "fase": "INICIAÇÃO", "atividade": "Reunião de Kickoff", "tempo": "1h", "responsavel": "GrupoNTSEC/INCRA", "inicio": "10/01/2026", "termino": "10/01/2026", "status": "⏳ Pendente"}, {"id": 2, "fase": "PLANEJAMENTO", "atividade": "Elaboração Projeto Executivo", "tempo": "16h", "responsavel": "GrupoNTSEC", "inicio": "08/02/2026", "termino": "21/02/2026", "status": "⏳ Pendente"}, {"id": 3, "fase": "PLANEJAMENTO", "atividade": "Entrega e Recebimento equipamentos", "tempo": "1h", "responsavel": "GrupoNTSEC", "inicio": "06/01/2026", "termino": "06/01/2026", "status": "⏳ Pendente"}, {"id": 4, "fase": "Migração SMS", "atividade": "Atualização da Gerência", "tempo": "4h", "responsavel": "GrupoNTSEC/INCRA", "inicio": "11/02/2026", "termino": "11/02/2026", "status": "⏳ Pendente"}, {"id": 5, "fase": "SR04 (Goiânia)", "atividade": "Instalação física dos equipamentos", "tempo": "2h", "responsavel": "GrupoNTSEC", "inicio": "19/02/2026", "termino": "19/02/2026", "status": "⏳ Pendente"}, {"id": 6, "fase": "SR04 (Goiânia)", "atividade": "Envio do backup das configurações", "tempo": "2h", "responsavel": "GrupoNTSEC/INCRA", "inicio": "19/02/2026", "termino": "19/02/2026", "status": "⏳ Pendente"}, {"id": 7, "fase": "SR04 (Goiânia)", "atividade": "Envio do Caderno de testes (e-mail)", "tempo": "2h", "responsavel": "GrupoNTSEC", "inicio": "19/02/2026", "termino": "19/02/2026", "status": "⏳ Pendente"}, {"id": 8, "fase": "SR04 (Goiânia)", "atividade": "Conferência do box e versão do equipamento", "tempo": "4h", "responsavel": "GrupoNTSEC/INCRA", "inicio": "19/02/2026", "termino": "19/02/2026", "status": "⏳ Pendente"}, {"id": 9, "fase": "SR04 (Goiânia)", "atividade": "Reunião remota para configuração e atualização", "tempo": "4h", "responsavel": "GrupoNTSEC/INCRA", "inicio": "19/02/2026", "termino": "19/02/2026", "status": "⏳ Pendente"}, {"id": 10, "fase": "SR04 (Goiânia)", "atividade": "Janela de Migração", "tempo": "4h", "responsavel": "GrupoNTSEC/INCRA", "inicio": "19/02/2026", "termino": "19/02/2026", "status": "⏳ Pendente"}, {"id": 11, "fase": "SR04 (Goiânia)", "atividade": "Execução do caderno de testes e Validação", "tempo": "1h", "responsavel": "GrupoNTSEC/INCRA", "inicio": "19/02/2026", "termino": "19/02/2026", "status": "⏳ Pendente"}, {"id": 12, "fase": "SR04 (Goiânia)", "atividade": "Day after, acompanhamento pós migração", "tempo": "4h", "responsavel": "GrupoNTSEC/INCRA", "inicio": "20/02/2026", "termino": "20/02/2026", "status": "⏳ Pendente"}, {"id": 13, "fase": "SR04 (Goiânia)", "atividade": "Elaboração do Relatório Técnico da Atividade", "tempo": "4h", "responsavel": "GrupoNTSEC", "inicio": "20/02/2026", "termino": "20/02/2026", "status": "⏳ Pendente"}, {"id": 14, "fase": "SR28 (Brasília)", "atividade": "Instalação física dos equipamentos", "tempo": "2h", "responsavel": "GrupoNTSEC", "inicio": "28/05/2026", "termino": "28/05/2026", "status": "⏳ Pendente"}, {"id": 15, "fase": "SR28 (Brasília)", "atividade": "Envio do backup das configurações", "tempo": "2h", "responsavel": "GrupoNTSEC/INCRA", "inicio": "28/05/2026", "termino": "28/05/2026", "status": "⏳ Pendente"}, {"id": 16, "fase": "SR28 (Brasília)", "atividade": "Envio do Caderno de testes (e-mail)", "tempo": "2h", "responsavel": "GrupoNTSEC", "inicio": "28/05/2026", "termino": "28/05/2026", "status": "⏳ Pendente"}, {"id": 17, "fase": "SR28 (Brasília)", "atividade": "Conferência do box e versão do equipamento (instalação física)", "tempo": "4h", "responsavel": "GrupoNTSEC/INCRA", "inicio": "28/05/2026", "termino": "28/05/2026", "status": "⏳ Pendente"}, {"id": 18, "fase": "SR28 (Brasília)", "atividade": "Reunião remota para configuração e atualização dos dispositivos", "tempo": "4h", "responsavel": "GrupoNTSEC/INCRA", "inicio": "28/05/2026", "termino": "28/05/2026", "status": "⏳ Pendente"}, {"id": 19, "fase": "SR28 (Brasília)", "atividade": "Janela de Migração", "tempo": "4h", "responsavel": "GrupoNTSEC/INCRA", "inicio": "28/05/2026", "termino": "28/05/2026", "status": "⏳ Pendente"}, {"id": 20, "fase": "SR28 (Brasília)", "atividade": "Execução do caderno de testes e Validação", "tempo": "1h", "responsavel": "GrupoNTSEC/INCRA", "inicio": "28/05/2026", "termino": "28/05/2026", "status": "⏳ Pendente"}, {"id": 21, "fase": "SR28 (Brasília)", "atividade": "Day after, acompanhamento pós migração", "tempo": "4h", "responsavel": "GrupoNTSEC/INCRA", "inicio": "29/05/2026", "termino": "29/05/2026", "status": "⏳ Pendente"}, {"id": 22, "fase": "SR28 (Brasília)", "atividade": "Elaboração do Relatório Técnico da Atividade", "tempo": "4h", "responsavel": "GrupoNTSEC", "inicio": "29/05/2026", "termino": "29/05/2026", "status": "⏳ Pendente"}, {"id": 23, "fase": "SEDE-DF", "atividade": "Instalação física dos equipamentos", "tempo": "2h", "responsavel": "GrupoNTSEC", "inicio": "02/06/2026", "termino": "02/06/2026", "status": "⏳ Pendente"}, {"id": 24, "fase": "SEDE-DF", "atividade": "Envio do backup das configurações", "tempo": "2h", "responsavel": "GrupoNTSEC/INCRA", "inicio": "02/06/2026", "termino": "02/06/2026", "status": "⏳ Pendente"}, {"id": 25, "fase": "SEDE-DF", "atividade": "Envio do Caderno de testes (e-mail)", "tempo": "2h", "responsavel": "GrupoNTSEC", "inicio": "02/06/2026", "termino": "02/06/2026", "status": "⏳ Pendente"}, {"id": 26, "fase": "SEDE-DF", "atividade": "Conferência do box e versão do equipamento (instalação física)", "tempo": "4h", "responsavel": "GrupoNTSEC/INCRA", "inicio": "02/06/2026", "termino": "02/06/2026", "status": "⏳ Pendente"}, {"id": 27, "fase": "SEDE-DF", "atividade": "Reunião remota para configuração e atualização dos dispositivos", "tempo": "4h", "responsavel": "GrupoNTSEC/INCRA", "inicio": "02/06/2026", "termino": "02/06/2026", "status": "⏳ Pendente"}, {"id": 28, "fase": "SEDE-DF", "atividade": "Janela de Migração", "tempo": "4h", "responsavel": "GrupoNTSEC/INCRA", "inicio": "02/06/2026", "termino": "02/06/2026", "status": "⏳ Pendente"}, {"id": 29, "fase": "SEDE-DF", "atividade": "Execução do caderno de testes e Validação", "tempo": "1h", "responsavel": "GrupoNTSEC/INCRA", "inicio": "02/06/2026", "termino": "02/06/2026", "status": "⏳ Pendente"}, {"id": 30, "fase": "SEDE-DF", "atividade": "Day after, acompanhamento pós migração", "tempo": "4h", "responsavel": "GrupoNTSEC/INCRA", "inicio": "03/06/2026", "termino": "03/06/2026", "status": "⏳ Pendente"}, {"id": 31, "fase": "SEDE-DF", "atividade": "Elaboração do Relatório Técnico da Atividade", "tempo": "4h", "responsavel": "GrupoNTSEC", "inicio": "03/06/2026", "termino": "03/06/2026", "status": "⏳ Pendente"}, {"id": 32, "fase": "SR 31 - SRFA/SECIPAN", "atividade": "Instalação física dos equipamentos", "tempo": "2h", "responsavel": "GrupoNTSEC", "inicio": "03/06/2026", "termino": "03/06/2026", "status": "⏳ Pendente"}, {"id": 33, "fase": "SR 31 - SRFA/SECIPAN", "atividade": "Envio do backup das configurações", "tempo": "2h", "responsavel": "GrupoNTSEC/INCRA", "inicio": "03/06/2026", "termino": "03/06/2026", "status": "⏳ Pendente"}, {"id": 34, "fase": "SR 31 - SRFA/SECIPAN", "atividade": "Envio do Caderno de testes (e-mail)", "tempo": "2h", "responsavel": "GrupoNTSEC", "inicio": "03/06/2026", "termino": "03/06/2026", "status": "⏳ Pendente"}, {"id": 35, "fase": "SR 31 - SRFA/SECIPAN", "atividade": "Conferência do box e versão do equipamento (instalação física)", "tempo": "4h", "responsavel": "GrupoNTSEC/INCRA", "inicio": "03/06/2026", "termino": "03/06/2026", "status": "⏳ Pendente"}, {"id": 36, "fase": "SR 31 - SRFA/SECIPAN", "atividade": "Reunião remota para configuração e atualização dos dispositivos", "tempo": "4h", "responsavel": "GrupoNTSEC/INCRA", "inicio": "03/06/2026", "termino": "03/06/2026", "status": "⏳ Pendente"}, {"id": 37, "fase": "SR 31 - SRFA/SECIPAN", "atividade": "Janela de Migração", "tempo": "4h", "responsavel": "GrupoNTSEC/INCRA", "inicio": "03/06/2026", "termino": "03/06/2026", "status": "⏳ Pendente"}, {"id": 38, "fase": "SR 31 - SRFA/SECIPAN", "atividade": "Execução do caderno de testes e Validação", "tempo": "1h", "responsavel": "GrupoNTSEC/INCRA", "inicio": "03/06/2026", "termino": "03/06/2026", "status": "⏳ Pendente"}, {"id": 39, "fase": "SR 31 - SRFA/SECIPAN", "atividade": "Day after, acompanhamento pós migração", "tempo": "4h", "responsavel": "GrupoNTSEC/INCRA", "inicio": "04/06/2026", "termino": "04/06/2026", "status": "⏳ Pendente"}, {"id": 40, "fase": "SR 31 - SRFA/SECIPAN", "atividade": "Elaboração do Relatório Técnico da Atividade", "tempo": "4h", "responsavel": "GrupoNTSEC", "inicio": "04/06/2026", "termino": "04/06/2026", "status": "⏳ Pendente"}, {"id": 41, "fase": "SRFA07 - SRFA BLM", "atividade": "Instalação física dos equipamentos", "tempo": "2h", "responsavel": "GrupoNTSEC", "inicio": "05/06/2026", "termino": "05/06/2026", "status": "⏳ Pendente"}, {"id": 42, "fase": "SRFA07 - SRFA BLM", "atividade": "Envio do backup das configurações", "tempo": "2h", "responsavel": "GrupoNTSEC/INCRA", "inicio": "05/06/2026", "termino": "05/06/2026", "status": "⏳ Pendente"}, {"id": 43, "fase": "SRFA07 - SRFA BLM", "atividade": "Envio do Caderno de testes (e-mail)", "tempo": "2h", "responsavel": "GrupoNTSEC", "inicio": "05/06/2026", "termino": "05/06/2026", "status": "⏳ Pendente"}, {"id": 44, "fase": "SRFA07 - SRFA BLM", "atividade": "Conferência do box e versão do equipamento (instalação física)", "tempo": "4h", "responsavel": "GrupoNTSEC/INCRA", "inicio": "05/06/2026", "termino": "05/06/2026", "status": "⏳ Pendente"}, {"id": 45, "fase": "SRFA07 - SRFA BLM", "atividade": "Reunião remota para configuração e atualização dos dispositivos", "tempo": "4h", "responsavel": "GrupoNTSEC/INCRA", "inicio": "05/06/2026", "termino": "05/06/2026", "status": "⏳ Pendente"}, {"id": 46, "fase": "SRFA07 - SRFA BLM", "atividade": "Janela de Migração", "tempo": "4h", "responsavel": "GrupoNTSEC/INCRA", "inicio": "05/06/2026", "termino": "05/06/2026", "status": "⏳ Pendente"}, {"id": 47, "fase": "SRFA07 - SRFA BLM", "atividade": "Execução do caderno de testes e Validação", "tempo": "1h", "responsavel": "GrupoNTSEC/INCRA", "inicio": "05/06/2026", "termino": "05/06/2026", "status": "⏳ Pendente"}, {"id": 48, "fase": "SRFA07 - SRFA BLM", "atividade": "Day after, acompanhamento pós migração", "tempo": "4h", "responsavel": "GrupoNTSEC/INCRA", "inicio": "06/06/2026", "termino": "06/06/2026", "status": "⏳ Pendente"}, {"id": 49, "fase": "SRFA07 - SRFA BLM", "atividade": "Elaboração do Relatório Técnico da Atividade", "tempo": "4h", "responsavel": "GrupoNTSEC", "inicio": "08/06/2026", "termino": "08/06/2026", "status": "⏳ Pendente"}, {"id": 50, "fase": "SRFA01 - STM", "atividade": "Instalação física dos equipamentos", "tempo": "2h", "responsavel": "GrupoNTSEC", "inicio": "09/06/2026", "termino": "09/06/2026", "status": "⏳ Pendente"}, {"id": 51, "fase": "SRFA01 - STM", "atividade": "Envio do backup das configurações", "tempo": "2h", "responsavel": "GrupoNTSEC/INCRA", "inicio": "09/06/2026", "termino": "09/06/2026", "status": "⏳ Pendente"}, {"id": 52, "fase": "SRFA01 - STM", "atividade": "Envio do Caderno de testes (e-mail)", "tempo": "2h", "responsavel": "GrupoNTSEC", "inicio": "09/06/2026", "termino": "09/06/2026", "status": "⏳ Pendente"}, {"id": 53, "fase": "SRFA01 - STM", "atividade": "Conferência do box e versão do equipamento (instalação física)", "tempo": "4h", "responsavel": "GrupoNTSEC/INCRA", "inicio": "09/06/2026", "termino": "09/06/2026", "status": "⏳ Pendente"}, {"id": 54, "fase": "SRFA01 - STM", "atividade": "Reunião remota para configuração e atualização dos dispositivos", "tempo": "4h", "responsavel": "GrupoNTSEC/INCRA", "inicio": "09/06/2026", "termino": "09/06/2026", "status": "⏳ Pendente"}, {"id": 55, "fase": "SRFA01 - STM", "atividade": "Janela de Migração", "tempo": "4h", "responsavel": "GrupoNTSEC/INCRA", "inicio": "09/06/2026", "termino": "09/06/2026", "status": "⏳ Pendente"}, {"id": 56, "fase": "SRFA01 - STM", "atividade": "Execução do caderno de testes e Validação", "tempo": "1h", "responsavel": "GrupoNTSEC/INCRA", "inicio": "09/06/2026", "termino": "09/06/2026", "status": "⏳ Pendente"}, {"id": 57, "fase": "SRFA01 - STM", "atividade": "Day after, acompanhamento pós migração", "tempo": "4h", "responsavel": "GrupoNTSEC/INCRA", "inicio": "10/06/2026", "termino": "10/06/2026", "status": "⏳ Pendente"}, {"id": 58, "fase": "SRFA01 - STM", "atividade": "Elaboração do Relatório Técnico da Atividade", "tempo": "4h", "responsavel": "GrupoNTSEC", "inicio": "10/06/2026", "termino": "10/06/2026", "status": "⏳ Pendente"}, {"id": 59, "fase": "SRFA06 - SRFA PVO", "atividade": "Instalação física dos equipamentos", "tempo": "2h", "responsavel": "GrupoNTSEC", "inicio": "12/06/2026", "termino": "12/06/2026", "status": "⏳ Pendente"}, {"id": 60, "fase": "SRFA06 - SRFA PVO", "atividade": "Envio do backup das configurações", "tempo": "2h", "responsavel": "GrupoNTSEC/INCRA", "inicio": "12/06/2026", "termino": "12/06/2026", "status": "⏳ Pendente"}, {"id": 61, "fase": "SRFA06 - SRFA PVO", "atividade": "Envio do Caderno de testes (e-mail)", "tempo": "2h", "responsavel": "GrupoNTSEC", "inicio": "12/06/2026", "termino": "12/06/2026", "status": "⏳ Pendente"}, {"id": 62, "fase": "SRFA06 - SRFA PVO", "atividade": "Conferência do box e versão do equipamento (instalação física)", "tempo": "4h", "responsavel": "GrupoNTSEC/INCRA", "inicio": "12/06/2026", "termino": "12/06/2026", "status": "⏳ Pendente"}, {"id": 63, "fase": "SRFA06 - SRFA PVO", "atividade": "Reunião remota para configuração e atualização dos dispositivos", "tempo": "4h", "responsavel": "GrupoNTSEC/INCRA", "inicio": "12/06/2026", "termino": "12/06/2026", "status": "⏳ Pendente"}, {"id": 64, "fase": "SRFA06 - SRFA PVO", "atividade": "Janela de Migração", "tempo": "4h", "responsavel": "GrupoNTSEC/INCRA", "inicio": "12/06/2026", "termino": "12/06/2026", "status": "⏳ Pendente"}, {"id": 65, "fase": "SRFA06 - SRFA PVO", "atividade": "Execução do caderno de testes e Validação", "tempo": "1h", "responsavel": "GrupoNTSEC/INCRA", "inicio": "12/06/2026", "termino": "12/06/2026", "status": "⏳ Pendente"}, {"id": 66, "fase": "SRFA06 - SRFA PVO", "atividade": "Day after, acompanhamento pós migração", "tempo": "4h", "responsavel": "GrupoNTSEC/INCRA", "inicio": "13/06/2026", "termino": "13/06/2026", "status": "⏳ Pendente"}, {"id": 67, "fase": "SRFA06 - SRFA PVO", "atividade": "Elaboração do Relatório Técnico da Atividade", "tempo": "4h", "responsavel": "GrupoNTSEC", "inicio": "15/06/2026", "termino": "15/06/2026", "status": "⏳ Pendente"}, {"id": 68, "fase": "SRFA10 - SRFA BVA", "atividade": "Instalação física dos equipamentos", "tempo": "2h", "responsavel": "GrupoNTSEC", "inicio": "16/06/2026", "termino": "16/06/2026", "status": "⏳ Pendente"}, {"id": 69, "fase": "SRFA10 - SRFA BVA", "atividade": "Envio do backup das configurações", "tempo": "2h", "responsavel": "GrupoNTSEC/INCRA", "inicio": "16/06/2026", "termino": "16/06/2026", "status": "⏳ Pendente"}, {"id": 70, "fase": "SRFA10 - SRFA BVA", "atividade": "Envio do Caderno de testes (e-mail)", "tempo": "2h", "responsavel": "GrupoNTSEC", "inicio": "16/06/2026", "termino": "16/06/2026", "status": "⏳ Pendente"}, {"id": 71, "fase": "SRFA10 - SRFA BVA", "atividade": "Conferência do box e versão do equipamento (instalação física)", "tempo": "4h", "responsavel": "GrupoNTSEC/INCRA", "inicio": "16/06/2026", "termino": "16/06/2026", "status": "⏳ Pendente"}, {"id": 72, "fase": "SRFA10 - SRFA BVA", "atividade": "Reunião remota para configuração e atualização dos dispositivos", "tempo": "4h", "responsavel": "GrupoNTSEC/INCRA", "inicio": "16/06/2026", "termino": "16/06/2026", "status": "⏳ Pendente"}, {"id": 73, "fase": "SRFA10 - SRFA BVA", "atividade": "Janela de Migração", "tempo": "4h", "responsavel": "GrupoNTSEC/INCRA", "inicio": "16/06/2026", "termino": "16/06/2026", "status": "⏳ Pendente"}, {"id": 74, "fase": "SRFA10 - SRFA BVA", "atividade": "Execução do caderno de testes e Validação", "tempo": "1h", "responsavel": "GrupoNTSEC/INCRA", "inicio": "16/06/2026", "termino": "16/06/2026", "status": "⏳ Pendente"}, {"id": 75, "fase": "SRFA10 - SRFA BVA", "atividade": "Day after, acompanhamento pós migração", "tempo": "4h", "responsavel": "GrupoNTSEC/INCRA", "inicio": "17/06/2026", "termino": "17/06/2026", "status": "⏳ Pendente"}, {"id": 76, "fase": "SRFA10 - SRFA BVA", "atividade": "Elaboração do Relatório Técnico da Atividade", "tempo": "4h", "responsavel": "GrupoNTSEC", "inicio": "17/06/2026", "termino": "17/06/2026", "status": "⏳ Pendente"}, {"id": 77, "fase": "SR(22)AL", "atividade": "Instalação física dos equipamentos", "tempo": "2h", "responsavel": "GrupoNTSEC", "inicio": "02/06/2026", "termino": "02/06/2026", "status": "⏳ Pendente"}, {"id": 78, "fase": "SR(22)AL", "atividade": "Envio do backup das configurações", "tempo": "2h", "responsavel": "GrupoNTSEC/INCRA", "inicio": "02/06/2026", "termino": "02/06/2026", "status": "⏳ Pendente"}, {"id": 79, "fase": "SR(22)AL", "atividade": "Envio do Caderno de testes (e-mail)", "tempo": "2h", "responsavel": "GrupoNTSEC", "inicio": "02/06/2026", "termino": "02/06/2026", "status": "⏳ Pendente"}, {"id": 80, "fase": "SR(22)AL", "atividade": "Conferência do box e versão do equipamento (instalação física)", "tempo": "4h", "responsavel": "GrupoNTSEC/INCRA", "inicio": "02/06/2026", "termino": "02/06/2026", "status": "⏳ Pendente"}, {"id": 81, "fase": "SR(22)AL", "atividade": "Reunião remota para configuração e atualização dos dispositivos", "tempo": "4h", "responsavel": "GrupoNTSEC/INCRA", "inicio": "02/06/2026", "termino": "02/06/2026", "status": "⏳ Pendente"}, {"id": 82, "fase": "SR(22)AL", "atividade": "Janela de Migração", "tempo": "4h", "responsavel": "GrupoNTSEC/INCRA", "inicio": "02/06/2026", "termino": "02/06/2026", "status": "⏳ Pendente"}, {"id": 83, "fase": "SR(22)AL", "atividade": "Execução do caderno de testes e Validação", "tempo": "1h", "responsavel": "GrupoNTSEC/INCRA", "inicio": "02/06/2026", "termino": "02/06/2026", "status": "⏳ Pendente"}, {"id": 84, "fase": "SR(22)AL", "atividade": "Day after, acompanhamento pós migração", "tempo": "4h", "responsavel": "GrupoNTSEC/INCRA", "inicio": "03/06/2026", "termino": "03/06/2026", "status": "⏳ Pendente"}, {"id": 85, "fase": "SR(22)AL", "atividade": "Elaboração do Relatório Técnico da Atividade", "tempo": "4h", "responsavel": "GrupoNTSEC", "inicio": "03/06/2026", "termino": "03/06/2026", "status": "⏳ Pendente"}, {"id": 86, "fase": "SR (21)AP", "atividade": "Instalação física dos equipamentos", "tempo": "2h", "responsavel": "GrupoNTSEC", "inicio": "03/06/2026", "termino": "03/06/2026", "status": "🔄 Em Andamento"}, {"id": 87, "fase": "SR (21)AP", "atividade": "Envio do backup das configurações", "tempo": "2h", "responsavel": "GrupoNTSEC/INCRA", "inicio": "03/06/2026", "termino": "03/06/2026", "status": "🔄 Em Andamento"}, {"id": 88, "fase": "SR (21)AP", "atividade": "Envio do Caderno de testes (e-mail)", "tempo": "2h", "responsavel": "GrupoNTSEC", "inicio": "03/06/2026", "termino": "03/06/2026", "status": "🔄 Em Andamento"}, {"id": 89, "fase": "SR (21)AP", "atividade": "Conferência do box e versão do equipamento (instalação física)", "tempo": "4h", "responsavel": "GrupoNTSEC/INCRA", "inicio": "03/06/2026", "termino": "03/06/2026", "status": "🔄 Em Andamento"}, {"id": 90, "fase": "SR (21)AP", "atividade": "Reunião remota para configuração e atualização dos dispositivos", "tempo": "4h", "responsavel": "GrupoNTSEC/INCRA", "inicio": "03/06/2026", "termino": "03/06/2026", "status": "⏳ Pendente"}, {"id": 91, "fase": "SR (21)AP", "atividade": "Janela de Migração", "tempo": "4h", "responsavel": "GrupoNTSEC/INCRA", "inicio": "03/06/2026", "termino": "03/06/2026", "status": "⏳ Pendente"}, {"id": 92, "fase": "SR (21)AP", "atividade": "Execução do caderno de testes e Validação", "tempo": "1h", "responsavel": "GrupoNTSEC/INCRA", "inicio": "03/06/2026", "termino": "03/06/2026", "status": "⏳ Pendente"}, {"id": 93, "fase": "SR (21)AP", "atividade": "Day after, acompanhamento pós migração", "tempo": "4h", "responsavel": "GrupoNTSEC/INCRA", "inicio": "05/06/2026", "termino": "05/06/2026", "status": "⏳ Pendente"}, {"id": 94, "fase": "SR (21)AP", "atividade": "Elaboração do Relatório Técnico da Atividade", "tempo": "4h", "responsavel": "GrupoNTSEC", "inicio": "05/06/2026", "termino": "05/06/2026", "status": "⏳ Pendente"}, {"id": 95, "fase": "SR (02)CE", "atividade": "Instalação física dos equipamentos", "tempo": "2h", "responsavel": "GrupoNTSEC", "inicio": "09/06/2026", "termino": "09/06/2026", "status": "⏳ Pendente"}, {"id": 96, "fase": "SR (02)CE", "atividade": "Envio do backup das configurações", "tempo": "2h", "responsavel": "GrupoNTSEC/INCRA", "inicio": "09/06/2026", "termino": "09/06/2026", "status": "⏳ Pendente"}, {"id": 97, "fase": "SR (02)CE", "atividade": "Envio do Caderno de testes (e-mail)", "tempo": "2h", "responsavel": "GrupoNTSEC", "inicio": "09/06/2026", "termino": "09/06/2026", "status": "⏳ Pendente"}, {"id": 98, "fase": "SR (02)CE", "atividade": "Conferência do box e versão do equipamento (instalação física)", "tempo": "4h", "responsavel": "GrupoNTSEC/INCRA", "inicio": "09/06/2026", "termino": "09/06/2026", "status": "⏳ Pendente"}, {"id": 99, "fase": "SR (02)CE", "atividade": "Reunião remota para configuração e atualização dos dispositivos", "tempo": "4h", "responsavel": "GrupoNTSEC/INCRA", "inicio": "09/06/2026", "termino": "09/06/2026", "status": "⏳ Pendente"}, {"id": 100, "fase": "SR (02)CE", "atividade": "Janela de Migração", "tempo": "4h", "responsavel": "GrupoNTSEC/INCRA", "inicio": "09/06/2026", "termino": "09/06/2026", "status": "⏳ Pendente"}, {"id": 101, "fase": "SR (02)CE", "atividade": "Execução do caderno de testes e Validação", "tempo": "1h", "responsavel": "GrupoNTSEC/INCRA", "inicio": "09/06/2026", "termino": "09/06/2026", "status": "⏳ Pendente"}, {"id": 102, "fase": "SR (02)CE", "atividade": "Day after, acompanhamento pós migração", "tempo": "4h", "responsavel": "GrupoNTSEC/INCRA", "inicio": "10/06/2026", "termino": "10/06/2026", "status": "⏳ Pendente"}, {"id": 103, "fase": "SR (02)CE", "atividade": "Elaboração do Relatório Técnico da Atividade", "tempo": "4h", "responsavel": "GrupoNTSEC", "inicio": "10/06/2026", "termino": "10/06/2026", "status": "⏳ Pendente"}, {"id": 104, "fase": "SR (20)ES", "atividade": "Instalação física dos equipamentos", "tempo": "2h", "responsavel": "GrupoNTSEC", "inicio": "11/06/2026", "termino": "11/06/2026", "status": "⏳ Pendente"}, {"id": 105, "fase": "SR (20)ES", "atividade": "Envio do backup das configurações", "tempo": "2h", "responsavel": "GrupoNTSEC/INCRA", "inicio": "11/06/2026", "termino": "11/06/2026", "status": "⏳ Pendente"}, {"id": 106, "fase": "SR (20)ES", "atividade": "Envio do Caderno de testes (e-mail)", "tempo": "2h", "responsavel": "GrupoNTSEC", "inicio": "11/06/2026", "termino": "11/06/2026", "status": "⏳ Pendente"}, {"id": 107, "fase": "SR (20)ES", "atividade": "Conferência do box e versão do equipamento (instalação física)", "tempo": "4h", "responsavel": "GrupoNTSEC/INCRA", "inicio": "11/06/2026", "termino": "11/06/2026", "status": "⏳ Pendente"}, {"id": 108, "fase": "SR (20)ES", "atividade": "Reunião remota para configuração e atualização dos dispositivos", "tempo": "4h", "responsavel": "GrupoNTSEC/INCRA", "inicio": "11/06/2026", "termino": "11/06/2026", "status": "⏳ Pendente"}, {"id": 109, "fase": "SR (20)ES", "atividade": "Janela de Migração", "tempo": "4h", "responsavel": "GrupoNTSEC/INCRA", "inicio": "11/06/2026", "termino": "11/06/2026", "status": "⏳ Pendente"}, {"id": 110, "fase": "SR (20)ES", "atividade": "Execução do caderno de testes e Validação", "tempo": "1h", "responsavel": "GrupoNTSEC/INCRA", "inicio": "11/06/2026", "termino": "11/06/2026", "status": "⏳ Pendente"}, {"id": 111, "fase": "SR (20)ES", "atividade": "Day after, acompanhamento pós migração", "tempo": "4h", "responsavel": "GrupoNTSEC/INCRA", "inicio": "12/06/2026", "termino": "12/06/2026", "status": "⏳ Pendente"}, {"id": 112, "fase": "SR (20)ES", "atividade": "Elaboração do Relatório Técnico da Atividade", "tempo": "4h", "responsavel": "GrupoNTSEC", "inicio": "12/06/2026", "termino": "12/06/2026", "status": "⏳ Pendente"}, {"id": 113, "fase": "SR(06)MG", "atividade": "Instalação física dos equipamentos", "tempo": "2h", "responsavel": "GrupoNTSEC", "inicio": "16/06/2026", "termino": "16/06/2026", "status": "⏳ Pendente"}, {"id": 114, "fase": "SR(06)MG", "atividade": "Envio do backup das configurações", "tempo": "2h", "responsavel": "GrupoNTSEC/INCRA", "inicio": "16/06/2026", "termino": "16/06/2026", "status": "⏳ Pendente"}, {"id": 115, "fase": "SR(06)MG", "atividade": "Envio do Caderno de testes (e-mail)", "tempo": "2h", "responsavel": "GrupoNTSEC", "inicio": "16/06/2026", "termino": "16/06/2026", "status": "⏳ Pendente"}, {"id": 116, "fase": "SR(06)MG", "atividade": "Conferência do box e versão do equipamento (instalação física)", "tempo": "4h", "responsavel": "GrupoNTSEC/INCRA", "inicio": "16/06/2026", "termino": "16/06/2026", "status": "⏳ Pendente"}, {"id": 117, "fase": "SR(06)MG", "atividade": "Reunião remota para configuração e atualização dos dispositivos", "tempo": "4h", "responsavel": "GrupoNTSEC/INCRA", "inicio": "16/06/2026", "termino": "16/06/2026", "status": "⏳ Pendente"}, {"id": 118, "fase": "SR(06)MG", "atividade": "Janela de Migração", "tempo": "4h", "responsavel": "GrupoNTSEC/INCRA", "inicio": "16/06/2026", "termino": "16/06/2026", "status": "⏳ Pendente"}, {"id": 119, "fase": "SR(06)MG", "atividade": "Execução do caderno de testes e Validação", "tempo": "1h", "responsavel": "GrupoNTSEC/INCRA", "inicio": "16/06/2026", "termino": "16/06/2026", "status": "⏳ Pendente"}, {"id": 120, "fase": "SR(06)MG", "atividade": "Day after, acompanhamento pós migração", "tempo": "4h", "responsavel": "GrupoNTSEC/INCRA", "inicio": "17/06/2026", "termino": "17/06/2026", "status": "⏳ Pendente"}, {"id": 121, "fase": "SR(06)MG", "atividade": "Elaboração do Relatório Técnico da Atividade", "tempo": "4h", "responsavel": "GrupoNTSEC", "inicio": "17/06/2026", "termino": "17/06/2026", "status": "⏳ Pendente"}, {"id": 122, "fase": "SR(16)MS", "atividade": "Instalação física dos equipamentos", "tempo": "2h", "responsavel": "GrupoNTSEC", "inicio": "18/06/2026", "termino": "18/06/2026", "status": "⏳ Pendente"}, {"id": 123, "fase": "SR(16)MS", "atividade": "Envio do backup das configurações", "tempo": "2h", "responsavel": "GrupoNTSEC/INCRA", "inicio": "18/06/2026", "termino": "18/06/2026", "status": "⏳ Pendente"}, {"id": 124, "fase": "SR(16)MS", "atividade": "Envio do Caderno de testes (e-mail)", "tempo": "2h", "responsavel": "GrupoNTSEC", "inicio": "18/06/2026", "termino": "18/06/2026", "status": "⏳ Pendente"}, {"id": 125, "fase": "SR(16)MS", "atividade": "Conferência do box e versão do equipamento (instalação física)", "tempo": "4h", "responsavel": "GrupoNTSEC/INCRA", "inicio": "18/06/2026", "termino": "18/06/2026", "status": "⏳ Pendente"}, {"id": 126, "fase": "SR(16)MS", "atividade": "Reunião remota para configuração e atualização dos dispositivos", "tempo": "4h", "responsavel": "GrupoNTSEC/INCRA", "inicio": "18/06/2026", "termino": "18/06/2026", "status": "⏳ Pendente"}, {"id": 127, "fase": "SR(16)MS", "atividade": "Janela de Migração", "tempo": "4h", "responsavel": "GrupoNTSEC/INCRA", "inicio": "18/06/2026", "termino": "18/06/2026", "status": "⏳ Pendente"}, {"id": 128, "fase": "SR(16)MS", "atividade": "Execução do caderno de testes e Validação", "tempo": "1h", "responsavel": "GrupoNTSEC/INCRA", "inicio": "18/06/2026", "termino": "18/06/2026", "status": "⏳ Pendente"}, {"id": 129, "fase": "SR(16)MS", "atividade": "Day after, acompanhamento pós migração", "tempo": "4h", "responsavel": "GrupoNTSEC/INCRA", "inicio": "19/06/2026", "termino": "19/06/2026", "status": "⏳ Pendente"}, {"id": 130, "fase": "SR(16)MS", "atividade": "Elaboração do Relatório Técnico da Atividade", "tempo": "4h", "responsavel": "GrupoNTSEC", "inicio": "19/06/2026", "termino": "19/06/2026", "status": "⏳ Pendente"}, {"id": 131, "fase": "SR(13)MT", "atividade": "Instalação física dos equipamentos", "tempo": "2h", "responsavel": "GrupoNTSEC", "inicio": "23/06/2026", "termino": "23/06/2026", "status": "⏳ Pendente"}, {"id": 132, "fase": "SR(13)MT", "atividade": "Envio do backup das configurações", "tempo": "2h", "responsavel": "GrupoNTSEC/INCRA", "inicio": "23/06/2026", "termino": "23/06/2026", "status": "⏳ Pendente"}, {"id": 133, "fase": "SR(13)MT", "atividade": "Envio do Caderno de testes (e-mail)", "tempo": "2h", "responsavel": "GrupoNTSEC", "inicio": "23/06/2026", "termino": "23/06/2026", "status": "⏳ Pendente"}, {"id": 134, "fase": "SR(13)MT", "atividade": "Conferência do box e versão do equipamento (instalação física)", "tempo": "4h", "responsavel": "GrupoNTSEC/INCRA", "inicio": "23/06/2026", "termino": "23/06/2026", "status": "⏳ Pendente"}, {"id": 135, "fase": "SR(13)MT", "atividade": "Reunião remota para configuração e atualização dos dispositivos", "tempo": "4h", "responsavel": "GrupoNTSEC/INCRA", "inicio": "23/06/2026", "termino": "23/06/2026", "status": "⏳ Pendente"}, {"id": 136, "fase": "SR(13)MT", "atividade": "Janela de Migração", "tempo": "4h", "responsavel": "GrupoNTSEC/INCRA", "inicio": "23/06/2026", "termino": "23/06/2026", "status": "⏳ Pendente"}, {"id": 137, "fase": "SR(13)MT", "atividade": "Execução do caderno de testes e Validação", "tempo": "1h", "responsavel": "GrupoNTSEC/INCRA", "inicio": "23/06/2026", "termino": "23/06/2026", "status": "⏳ Pendente"}, {"id": 138, "fase": "SR(13)MT", "atividade": "Day after, acompanhamento pós migração", "tempo": "4h", "responsavel": "GrupoNTSEC/INCRA", "inicio": "24/06/2026", "termino": "24/06/2026", "status": "⏳ Pendente"}, {"id": 139, "fase": "SR(13)MT", "atividade": "Elaboração do Relatório Técnico da Atividade", "tempo": "4h", "responsavel": "GrupoNTSEC", "inicio": "24/06/2026", "termino": "24/06/2026", "status": "⏳ Pendente"}, {"id": 140, "fase": "SR(01)PA", "atividade": "Instalação física dos equipamentos", "tempo": "2h", "responsavel": "GrupoNTSEC", "inicio": "25/06/2026", "termino": "25/06/2026", "status": "⏳ Pendente"}, {"id": 141, "fase": "SR(01)PA", "atividade": "Envio do backup das configurações", "tempo": "2h", "responsavel": "GrupoNTSEC/INCRA", "inicio": "25/06/2026", "termino": "25/06/2026", "status": "⏳ Pendente"}, {"id": 142, "fase": "SR(01)PA", "atividade": "Envio do Caderno de testes (e-mail)", "tempo": "2h", "responsavel": "GrupoNTSEC", "inicio": "25/06/2026", "termino": "25/06/2026", "status": "⏳ Pendente"}, {"id": 143, "fase": "SR(01)PA", "atividade": "Conferência do box e versão do equipamento (instalação física)", "tempo": "4h", "responsavel": "GrupoNTSEC/INCRA", "inicio": "25/06/2026", "termino": "25/06/2026", "status": "⏳ Pendente"}, {"id": 144, "fase": "SR(01)PA", "atividade": "Reunião remota para configuração e atualização dos dispositivos", "tempo": "4h", "responsavel": "GrupoNTSEC/INCRA", "inicio": "25/06/2026", "termino": "25/06/2026", "status": "⏳ Pendente"}, {"id": 145, "fase": "SR(01)PA", "atividade": "Janela de Migração", "tempo": "4h", "responsavel": "GrupoNTSEC/INCRA", "inicio": "25/06/2026", "termino": "25/06/2026", "status": "⏳ Pendente"}, {"id": 146, "fase": "SR(01)PA", "atividade": "Execução do caderno de testes e Validação", "tempo": "1h", "responsavel": "GrupoNTSEC/INCRA", "inicio": "25/06/2026", "termino": "25/06/2026", "status": "⏳ Pendente"}, {"id": 147, "fase": "SR(01)PA", "atividade": "Day after, acompanhamento pós migração", "tempo": "4h", "responsavel": "GrupoNTSEC/INCRA", "inicio": "26/06/2026", "termino": "26/06/2026", "status": "⏳ Pendente"}, {"id": 148, "fase": "SR(01)PA", "atividade": "Elaboração do Relatório Técnico da Atividade", "tempo": "4h", "responsavel": "GrupoNTSEC", "inicio": "26/06/2026", "termino": "26/06/2026", "status": "⏳ Pendente"}, {"id": 149, "fase": "SR(27)MBA", "atividade": "Instalação física dos equipamentos", "tempo": "2h", "responsavel": "GrupoNTSEC", "inicio": "30/06/2026", "termino": "30/06/2026", "status": "⏳ Pendente"}, {"id": 150, "fase": "SR(27)MBA", "atividade": "Envio do backup das configurações", "tempo": "2h", "responsavel": "GrupoNTSEC/INCRA", "inicio": "30/06/2026", "termino": "30/06/2026", "status": "⏳ Pendente"}, {"id": 151, "fase": "SR(27)MBA", "atividade": "Envio do Caderno de testes (e-mail)", "tempo": "2h", "responsavel": "GrupoNTSEC", "inicio": "30/06/2026", "termino": "30/06/2026", "status": "⏳ Pendente"}, {"id": 152, "fase": "SR(27)MBA", "atividade": "Conferência do box e versão do equipamento (instalação física)", "tempo": "4h", "responsavel": "GrupoNTSEC/INCRA", "inicio": "30/06/2026", "termino": "30/06/2026", "status": "⏳ Pendente"}, {"id": 153, "fase": "SR(27)MBA", "atividade": "Reunião remota para configuração e atualização dos dispositivos", "tempo": "4h", "responsavel": "GrupoNTSEC/INCRA", "inicio": "30/06/2026", "termino": "30/06/2026", "status": "⏳ Pendente"}, {"id": 154, "fase": "SR(27)MBA", "atividade": "Janela de Migração", "tempo": "4h", "responsavel": "GrupoNTSEC/INCRA", "inicio": "30/06/2026", "termino": "30/06/2026", "status": "⏳ Pendente"}, {"id": 155, "fase": "SR(27)MBA", "atividade": "Execução do caderno de testes e Validação", "tempo": "1h", "responsavel": "GrupoNTSEC/INCRA", "inicio": "30/06/2026", "termino": "30/06/2026", "status": "⏳ Pendente"}, {"id": 156, "fase": "SR(27)MBA", "atividade": "Day after, acompanhamento pós migração", "tempo": "4h", "responsavel": "GrupoNTSEC/INCRA", "inicio": "01/07/2026", "termino": "01/07/2026", "status": "⏳ Pendente"}, {"id": 157, "fase": "SR(27)MBA", "atividade": "Elaboração do Relatório Técnico da Atividade", "tempo": "4h", "responsavel": "GrupoNTSEC", "inicio": "01/07/2026", "termino": "01/07/2026", "status": "⏳ Pendente"}, {"id": 158, "fase": "SR(30)STA", "atividade": "Instalação física dos equipamentos", "tempo": "2h", "responsavel": "GrupoNTSEC", "inicio": "02/07/2026", "termino": "02/07/2026", "status": "⏳ Pendente"}, {"id": 159, "fase": "SR(30)STA", "atividade": "Envio do backup das configurações", "tempo": "2h", "responsavel": "GrupoNTSEC/INCRA", "inicio": "02/07/2026", "termino": "02/07/2026", "status": "⏳ Pendente"}, {"id": 160, "fase": "SR(30)STA", "atividade": "Envio do Caderno de testes (e-mail)", "tempo": "2h", "responsavel": "GrupoNTSEC", "inicio": "02/07/2026", "termino": "02/07/2026", "status": "⏳ Pendente"}, {"id": 161, "fase": "SR(30)STA", "atividade": "Conferência do box e versão do equipamento (instalação física)", "tempo": "4h", "responsavel": "GrupoNTSEC/INCRA", "inicio": "02/07/2026", "termino": "02/07/2026", "status": "⏳ Pendente"}, {"id": 162, "fase": "SR(30)STA", "atividade": "Reunião remota para configuração e atualização dos dispositivos", "tempo": "4h", "responsavel": "GrupoNTSEC/INCRA", "inicio": "02/07/2026", "termino": "02/07/2026", "status": "⏳ Pendente"}, {"id": 163, "fase": "SR(30)STA", "atividade": "Janela de Migração", "tempo": "4h", "responsavel": "GrupoNTSEC/INCRA", "inicio": "02/07/2026", "termino": "02/07/2026", "status": "⏳ Pendente"}, {"id": 164, "fase": "SR(30)STA", "atividade": "Execução do caderno de testes e Validação", "tempo": "1h", "responsavel": "GrupoNTSEC/INCRA", "inicio": "02/07/2026", "termino": "02/07/2026", "status": "⏳ Pendente"}, {"id": 165, "fase": "SR(30)STA", "atividade": "Day after, acompanhamento pós migração", "tempo": "4h", "responsavel": "GrupoNTSEC/INCRA", "inicio": "03/07/2026", "termino": "03/07/2026", "status": "⏳ Pendente"}, {"id": 166, "fase": "SR(30)STA", "atividade": "Elaboração do Relatório Técnico da Atividade", "tempo": "4h", "responsavel": "GrupoNTSEC", "inicio": "03/07/2026", "termino": "03/07/2026", "status": "⏳ Pendente"}, {"id": 167, "fase": "UAE (PA/O) Altamira", "atividade": "Instalação física dos equipamentos", "tempo": "2h", "responsavel": "GrupoNTSEC", "inicio": "07/07/2026", "termino": "07/07/2026", "status": "⏳ Pendente"}, {"id": 168, "fase": "UAE (PA/O) Altamira", "atividade": "Envio do backup das configurações", "tempo": "2h", "responsavel": "GrupoNTSEC/INCRA", "inicio": "07/07/2026", "termino": "07/07/2026", "status": "⏳ Pendente"}, {"id": 169, "fase": "UAE (PA/O) Altamira", "atividade": "Envio do Caderno de testes (e-mail)", "tempo": "2h", "responsavel": "GrupoNTSEC", "inicio": "07/07/2026", "termino": "07/07/2026", "status": "⏳ Pendente"}, {"id": 170, "fase": "UAE (PA/O) Altamira", "atividade": "Conferência do box e versão do equipamento (instalação física)", "tempo": "4h", "responsavel": "GrupoNTSEC/INCRA", "inicio": "07/07/2026", "termino": "07/07/2026", "status": "⏳ Pendente"}, {"id": 171, "fase": "UAE (PA/O) Altamira", "atividade": "Reunião remota para configuração e atualização dos dispositivos", "tempo": "4h", "responsavel": "GrupoNTSEC/INCRA", "inicio": "07/07/2026", "termino": "07/07/2026", "status": "⏳ Pendente"}, {"id": 172, "fase": "UAE (PA/O) Altamira", "atividade": "Janela de Migração", "tempo": "4h", "responsavel": "GrupoNTSEC/INCRA", "inicio": "07/07/2026", "termino": "07/07/2026", "status": "⏳ Pendente"}, {"id": 173, "fase": "UAE (PA/O) Altamira", "atividade": "Execução do caderno de testes e Validação", "tempo": "1h", "responsavel": "GrupoNTSEC/INCRA", "inicio": "07/07/2026", "termino": "07/07/2026", "status": "⏳ Pendente"}, {"id": 174, "fase": "UAE (PA/O) Altamira", "atividade": "Day after, acompanhamento pós migração", "tempo": "4h", "responsavel": "GrupoNTSEC/INCRA", "inicio": "08/07/2026", "termino": "08/07/2026", "status": "⏳ Pendente"}, {"id": 175, "fase": "UAE (PA/O) Altamira", "atividade": "Elaboração do Relatório Técnico da Atividade", "tempo": "4h", "responsavel": "GrupoNTSEC", "inicio": "08/07/2026", "termino": "08/07/2026", "status": "⏳ Pendente"}, {"id": 176, "fase": "SR (18)PB", "atividade": "Instalação física dos equipamentos", "tempo": "2h", "responsavel": "GrupoNTSEC", "inicio": "09/07/2026", "termino": "09/07/2026", "status": "⏳ Pendente"}, {"id": 177, "fase": "SR (18)PB", "atividade": "Envio do backup das configurações", "tempo": "2h", "responsavel": "GrupoNTSEC/INCRA", "inicio": "09/07/2026", "termino": "09/07/2026", "status": "⏳ Pendente"}, {"id": 178, "fase": "SR (18)PB", "atividade": "Envio do Caderno de testes (e-mail)", "tempo": "2h", "responsavel": "GrupoNTSEC", "inicio": "09/07/2026", "termino": "09/07/2026", "status": "⏳ Pendente"}, {"id": 179, "fase": "SR (18)PB", "atividade": "Conferência do box e versão do equipamento (instalação física)", "tempo": "4h", "responsavel": "GrupoNTSEC/INCRA", "inicio": "09/07/2026", "termino": "09/07/2026", "status": "⏳ Pendente"}, {"id": 180, "fase": "SR (18)PB", "atividade": "Reunião remota para configuração e atualização dos dispositivos", "tempo": "4h", "responsavel": "GrupoNTSEC/INCRA", "inicio": "09/07/2026", "termino": "09/07/2026", "status": "⏳ Pendente"}, {"id": 181, "fase": "SR (18)PB", "atividade": "Janela de Migração", "tempo": "4h", "responsavel": "GrupoNTSEC/INCRA", "inicio": "09/07/2026", "termino": "09/07/2026", "status": "⏳ Pendente"}, {"id": 182, "fase": "SR (18)PB", "atividade": "Execução do caderno de testes e Validação", "tempo": "1h", "responsavel": "GrupoNTSEC/INCRA", "inicio": "09/07/2026", "termino": "09/07/2026", "status": "⏳ Pendente"}, {"id": 183, "fase": "SR (18)PB", "atividade": "Day after, acompanhamento pós migração", "tempo": "4h", "responsavel": "GrupoNTSEC/INCRA", "inicio": "10/07/2026", "termino": "10/07/2026", "status": "⏳ Pendente"}, {"id": 184, "fase": "SR (18)PB", "atividade": "Elaboração do Relatório Técnico da Atividade", "tempo": "4h", "responsavel": "GrupoNTSEC", "inicio": "10/07/2026", "termino": "10/07/2026", "status": "⏳ Pendente"}, {"id": 185, "fase": "SR(03)PE", "atividade": "Instalação física dos equipamentos", "tempo": "2h", "responsavel": "GrupoNTSEC", "inicio": "14/07/2026", "termino": "14/07/2026", "status": "⏳ Pendente"}, {"id": 186, "fase": "SR(03)PE", "atividade": "Envio do backup das configurações", "tempo": "2h", "responsavel": "GrupoNTSEC/INCRA", "inicio": "14/07/2026", "termino": "14/07/2026", "status": "⏳ Pendente"}, {"id": 187, "fase": "SR(03)PE", "atividade": "Envio do Caderno de testes (e-mail)", "tempo": "2h", "responsavel": "GrupoNTSEC", "inicio": "14/07/2026", "termino": "14/07/2026", "status": "⏳ Pendente"}, {"id": 188, "fase": "SR(03)PE", "atividade": "Conferência do box e versão do equipamento (instalação física)", "tempo": "4h", "responsavel": "GrupoNTSEC/INCRA", "inicio": "14/07/2026", "termino": "14/07/2026", "status": "⏳ Pendente"}, {"id": 189, "fase": "SR(03)PE", "atividade": "Reunião remota para configuração e atualização dos dispositivos", "tempo": "4h", "responsavel": "GrupoNTSEC/INCRA", "inicio": "14/07/2026", "termino": "14/07/2026", "status": "⏳ Pendente"}, {"id": 190, "fase": "SR(03)PE", "atividade": "Janela de Migração", "tempo": "4h", "responsavel": "GrupoNTSEC/INCRA", "inicio": "14/07/2026", "termino": "14/07/2026", "status": "⏳ Pendente"}, {"id": 191, "fase": "SR(03)PE", "atividade": "Execução do caderno de testes e Validação", "tempo": "1h", "responsavel": "GrupoNTSEC/INCRA", "inicio": "14/07/2026", "termino": "14/07/2026", "status": "⏳ Pendente"}, {"id": 192, "fase": "SR(03)PE", "atividade": "Day after, acompanhamento pós migração", "tempo": "4h", "responsavel": "GrupoNTSEC/INCRA", "inicio": "15/07/2026", "termino": "15/07/2026", "status": "⏳ Pendente"}, {"id": 193, "fase": "SR(03)PE", "atividade": "Elaboração do Relatório Técnico da Atividade", "tempo": "4h", "responsavel": "GrupoNTSEC", "inicio": "15/07/2026", "termino": "15/07/2026", "status": "⏳ Pendente"}, {"id": 194, "fase": "SR(29)MSF", "atividade": "Instalação física dos equipamentos", "tempo": "2h", "responsavel": "GrupoNTSEC", "inicio": "16/07/2026", "termino": "16/07/2026", "status": "⏳ Pendente"}, {"id": 195, "fase": "SR(29)MSF", "atividade": "Envio do backup das configurações", "tempo": "2h", "responsavel": "GrupoNTSEC/INCRA", "inicio": "16/07/2026", "termino": "16/07/2026", "status": "⏳ Pendente"}, {"id": 196, "fase": "SR(29)MSF", "atividade": "Envio do Caderno de testes (e-mail)", "tempo": "2h", "responsavel": "GrupoNTSEC", "inicio": "16/07/2026", "termino": "16/07/2026", "status": "⏳ Pendente"}, {"id": 197, "fase": "SR(29)MSF", "atividade": "Conferência do box e versão do equipamento (instalação física)", "tempo": "4h", "responsavel": "GrupoNTSEC/INCRA", "inicio": "16/07/2026", "termino": "16/07/2026", "status": "⏳ Pendente"}, {"id": 198, "fase": "SR(29)MSF", "atividade": "Reunião remota para configuração e atualização dos dispositivos", "tempo": "4h", "responsavel": "GrupoNTSEC/INCRA", "inicio": "16/07/2026", "termino": "16/07/2026", "status": "⏳ Pendente"}, {"id": 199, "fase": "SR(29)MSF", "atividade": "Janela de Migração", "tempo": "4h", "responsavel": "GrupoNTSEC/INCRA", "inicio": "16/07/2026", "termino": "16/07/2026", "status": "⏳ Pendente"}, {"id": 200, "fase": "SR(29)MSF", "atividade": "Execução do caderno de testes e Validação", "tempo": "1h", "responsavel": "GrupoNTSEC/INCRA", "inicio": "16/07/2026", "termino": "16/07/2026", "status": "⏳ Pendente"}, {"id": 201, "fase": "SR(29)MSF", "atividade": "Day after, acompanhamento pós migração", "tempo": "4h", "responsavel": "GrupoNTSEC/INCRA", "inicio": "17/07/2026", "termino": "17/07/2026", "status": "⏳ Pendente"}, {"id": 202, "fase": "SR(29)MSF", "atividade": "Elaboração do Relatório Técnico da Atividade", "tempo": "4h", "responsavel": "GrupoNTSEC", "inicio": "17/07/2026", "termino": "17/07/2026", "status": "⏳ Pendente"}, {"id": 203, "fase": "SR(24)PI", "atividade": "Instalação física dos equipamentos", "tempo": "2h", "responsavel": "GrupoNTSEC", "inicio": "21/07/2026", "termino": "21/07/2026", "status": "⏳ Pendente"}, {"id": 204, "fase": "SR(24)PI", "atividade": "Envio do backup das configurações", "tempo": "2h", "responsavel": "GrupoNTSEC/INCRA", "inicio": "21/07/2026", "termino": "21/07/2026", "status": "⏳ Pendente"}, {"id": 205, "fase": "SR(24)PI", "atividade": "Envio do Caderno de testes (e-mail)", "tempo": "2h", "responsavel": "GrupoNTSEC", "inicio": "21/07/2026", "termino": "21/07/2026", "status": "⏳ Pendente"}, {"id": 206, "fase": "SR(24)PI", "atividade": "Conferência do box e versão do equipamento (instalação física)", "tempo": "4h", "responsavel": "GrupoNTSEC/INCRA", "inicio": "21/07/2026", "termino": "21/07/2026", "status": "⏳ Pendente"}, {"id": 207, "fase": "SR(24)PI", "atividade": "Reunião remota para configuração e atualização dos dispositivos", "tempo": "4h", "responsavel": "GrupoNTSEC/INCRA", "inicio": "21/07/2026", "termino": "21/07/2026", "status": "⏳ Pendente"}, {"id": 208, "fase": "SR(24)PI", "atividade": "Janela de Migração", "tempo": "4h", "responsavel": "GrupoNTSEC/INCRA", "inicio": "21/07/2026", "termino": "21/07/2026", "status": "⏳ Pendente"}, {"id": 209, "fase": "SR(24)PI", "atividade": "Execução do caderno de testes e Validação", "tempo": "1h", "responsavel": "GrupoNTSEC/INCRA", "inicio": "21/07/2026", "termino": "21/07/2026", "status": "⏳ Pendente"}, {"id": 210, "fase": "SR(24)PI", "atividade": "Day after, acompanhamento pós migração", "tempo": "4h", "responsavel": "GrupoNTSEC/INCRA", "inicio": "22/07/2026", "termino": "22/07/2026", "status": "⏳ Pendente"}, {"id": 211, "fase": "SR(24)PI", "atividade": "Elaboração do Relatório Técnico da Atividade", "tempo": "4h", "responsavel": "GrupoNTSEC", "inicio": "22/07/2026", "termino": "22/07/2026", "status": "⏳ Pendente"}, {"id": 212, "fase": "SR(09)PR", "atividade": "Instalação física dos equipamentos", "tempo": "2h", "responsavel": "GrupoNTSEC", "inicio": "23/07/2026", "termino": "23/07/2026", "status": "⏳ Pendente"}, {"id": 213, "fase": "SR(09)PR", "atividade": "Envio do backup das configurações", "tempo": "2h", "responsavel": "GrupoNTSEC/INCRA", "inicio": "23/07/2026", "termino": "23/07/2026", "status": "⏳ Pendente"}, {"id": 214, "fase": "SR(09)PR", "atividade": "Envio do Caderno de testes (e-mail)", "tempo": "2h", "responsavel": "GrupoNTSEC", "inicio": "23/07/2026", "termino": "23/07/2026", "status": "⏳ Pendente"}, {"id": 215, "fase": "SR(09)PR", "atividade": "Conferência do box e versão do equipamento (instalação física)", "tempo": "4h", "responsavel": "GrupoNTSEC/INCRA", "inicio": "23/07/2026", "termino": "23/07/2026", "status": "⏳ Pendente"}, {"id": 216, "fase": "SR(09)PR", "atividade": "Reunião remota para configuração e atualização dos dispositivos", "tempo": "4h", "responsavel": "GrupoNTSEC/INCRA", "inicio": "23/07/2026", "termino": "23/07/2026", "status": "⏳ Pendente"}, {"id": 217, "fase": "SR(09)PR", "atividade": "Janela de Migração", "tempo": "4h", "responsavel": "GrupoNTSEC/INCRA", "inicio": "23/07/2026", "termino": "23/07/2026", "status": "⏳ Pendente"}, {"id": 218, "fase": "SR(09)PR", "atividade": "Execução do caderno de testes e Validação", "tempo": "1h", "responsavel": "GrupoNTSEC/INCRA", "inicio": "23/07/2026", "termino": "23/07/2026", "status": "⏳ Pendente"}, {"id": 219, "fase": "SR(09)PR", "atividade": "Day after, acompanhamento pós migração", "tempo": "4h", "responsavel": "GrupoNTSEC/INCRA", "inicio": "24/07/2026", "termino": "24/07/2026", "status": "⏳ Pendente"}, {"id": 220, "fase": "SR(09)PR", "atividade": "Elaboração do Relatório Técnico da Atividade", "tempo": "4h", "responsavel": "GrupoNTSEC", "inicio": "24/07/2026", "termino": "24/07/2026", "status": "⏳ Pendente"}, {"id": 221, "fase": "SR (19)RN", "atividade": "Instalação física dos equipamentos", "tempo": "2h", "responsavel": "GrupoNTSEC", "inicio": "28/07/2026", "termino": "28/07/2026", "status": "⏳ Pendente"}, {"id": 222, "fase": "SR (19)RN", "atividade": "Envio do backup das configurações", "tempo": "2h", "responsavel": "GrupoNTSEC/INCRA", "inicio": "28/07/2026", "termino": "28/07/2026", "status": "⏳ Pendente"}, {"id": 223, "fase": "SR (19)RN", "atividade": "Envio do Caderno de testes (e-mail)", "tempo": "2h", "responsavel": "GrupoNTSEC", "inicio": "28/07/2026", "termino": "28/07/2026", "status": "⏳ Pendente"}, {"id": 224, "fase": "SR (19)RN", "atividade": "Conferência do box e versão do equipamento (instalação física)", "tempo": "4h", "responsavel": "GrupoNTSEC/INCRA", "inicio": "28/07/2026", "termino": "28/07/2026", "status": "⏳ Pendente"}, {"id": 225, "fase": "SR (19)RN", "atividade": "Reunião remota para configuração e atualização dos dispositivos", "tempo": "4h", "responsavel": "GrupoNTSEC/INCRA", "inicio": "28/07/2026", "termino": "28/07/2026", "status": "⏳ Pendente"}, {"id": 226, "fase": "SR (19)RN", "atividade": "Janela de Migração", "tempo": "4h", "responsavel": "GrupoNTSEC/INCRA", "inicio": "28/07/2026", "termino": "28/07/2026", "status": "⏳ Pendente"}, {"id": 227, "fase": "SR (19)RN", "atividade": "Execução do caderno de testes e Validação", "tempo": "1h", "responsavel": "GrupoNTSEC/INCRA", "inicio": "28/07/2026", "termino": "28/07/2026", "status": "⏳ Pendente"}, {"id": 228, "fase": "SR (19)RN", "atividade": "Day after, acompanhamento pós migração", "tempo": "4h", "responsavel": "GrupoNTSEC/INCRA", "inicio": "29/07/2026", "termino": "29/07/2026", "status": "⏳ Pendente"}, {"id": 229, "fase": "SR (19)RN", "atividade": "Elaboração do Relatório Técnico da Atividade", "tempo": "4h", "responsavel": "GrupoNTSEC", "inicio": "29/07/2026", "termino": "29/07/2026", "status": "⏳ Pendente"}, {"id": 230, "fase": "SR(17)RO", "atividade": "Instalação física dos equipamentos", "tempo": "2h", "responsavel": "GrupoNTSEC", "inicio": "30/07/2026", "termino": "30/07/2026", "status": "⏳ Pendente"}, {"id": 231, "fase": "SR(17)RO", "atividade": "Envio do backup das configurações", "tempo": "2h", "responsavel": "GrupoNTSEC/INCRA", "inicio": "30/07/2026", "termino": "30/07/2026", "status": "⏳ Pendente"}, {"id": 232, "fase": "SR(17)RO", "atividade": "Envio do Caderno de testes (e-mail)", "tempo": "2h", "responsavel": "GrupoNTSEC", "inicio": "30/07/2026", "termino": "30/07/2026", "status": "⏳ Pendente"}, {"id": 233, "fase": "SR(17)RO", "atividade": "Conferência do box e versão do equipamento (instalação física)", "tempo": "4h", "responsavel": "GrupoNTSEC/INCRA", "inicio": "30/07/2026", "termino": "30/07/2026", "status": "⏳ Pendente"}, {"id": 234, "fase": "SR(17)RO", "atividade": "Reunião remota para configuração e atualização dos dispositivos", "tempo": "4h", "responsavel": "GrupoNTSEC/INCRA", "inicio": "30/07/2026", "termino": "30/07/2026", "status": "⏳ Pendente"}, {"id": 235, "fase": "SR(17)RO", "atividade": "Janela de Migração", "tempo": "4h", "responsavel": "GrupoNTSEC/INCRA", "inicio": "30/07/2026", "termino": "30/07/2026", "status": "⏳ Pendente"}, {"id": 236, "fase": "SR(17)RO", "atividade": "Execução do caderno de testes e Validação", "tempo": "1h", "responsavel": "GrupoNTSEC/INCRA", "inicio": "30/07/2026", "termino": "30/07/2026", "status": "⏳ Pendente"}, {"id": 237, "fase": "SR(17)RO", "atividade": "Day after, acompanhamento pós migração", "tempo": "4h", "responsavel": "GrupoNTSEC/INCRA", "inicio": "31/07/2026", "termino": "31/07/2026", "status": "⏳ Pendente"}, {"id": 238, "fase": "SR(17)RO", "atividade": "Elaboração do Relatório Técnico da Atividade", "tempo": "4h", "responsavel": "GrupoNTSEC", "inicio": "31/07/2026", "termino": "31/07/2026", "status": "⏳ Pendente"}, {"id": 239, "fase": "SR(25)RR", "atividade": "Instalação física dos equipamentos", "tempo": "2h", "responsavel": "GrupoNTSEC", "inicio": "04/08/2026", "termino": "04/08/2026", "status": "⏳ Pendente"}, {"id": 240, "fase": "SR(25)RR", "atividade": "Envio do backup das configurações", "tempo": "2h", "responsavel": "GrupoNTSEC/INCRA", "inicio": "04/08/2026", "termino": "04/08/2026", "status": "⏳ Pendente"}, {"id": 241, "fase": "SR(25)RR", "atividade": "Envio do Caderno de testes (e-mail)", "tempo": "2h", "responsavel": "GrupoNTSEC", "inicio": "04/08/2026", "termino": "04/08/2026", "status": "⏳ Pendente"}, {"id": 242, "fase": "SR(25)RR", "atividade": "Conferência do box e versão do equipamento (instalação física)", "tempo": "4h", "responsavel": "GrupoNTSEC/INCRA", "inicio": "04/08/2026", "termino": "04/08/2026", "status": "⏳ Pendente"}, {"id": 243, "fase": "SR(25)RR", "atividade": "Reunião remota para configuração e atualização dos dispositivos", "tempo": "4h", "responsavel": "GrupoNTSEC/INCRA", "inicio": "04/08/2026", "termino": "04/08/2026", "status": "⏳ Pendente"}, {"id": 244, "fase": "SR(25)RR", "atividade": "Janela de Migração", "tempo": "4h", "responsavel": "GrupoNTSEC/INCRA", "inicio": "04/08/2026", "termino": "04/08/2026", "status": "⏳ Pendente"}, {"id": 245, "fase": "SR(25)RR", "atividade": "Execução do caderno de testes e Validação", "tempo": "1h", "responsavel": "GrupoNTSEC/INCRA", "inicio": "04/08/2026", "termino": "04/08/2026", "status": "⏳ Pendente"}, {"id": 246, "fase": "SR(25)RR", "atividade": "Day after, acompanhamento pós migração", "tempo": "4h", "responsavel": "GrupoNTSEC/INCRA", "inicio": "05/08/2026", "termino": "05/08/2026", "status": "⏳ Pendente"}, {"id": 247, "fase": "SR(25)RR", "atividade": "Elaboração do Relatório Técnico da Atividade", "tempo": "4h", "responsavel": "GrupoNTSEC", "inicio": "05/08/2026", "termino": "05/08/2026", "status": "⏳ Pendente"}, {"id": 248, "fase": "SR(11)RS", "atividade": "Instalação física dos equipamentos", "tempo": "2h", "responsavel": "GrupoNTSEC", "inicio": "06/08/2026", "termino": "06/08/2026", "status": "⏳ Pendente"}, {"id": 249, "fase": "SR(11)RS", "atividade": "Envio do backup das configurações", "tempo": "2h", "responsavel": "GrupoNTSEC/INCRA", "inicio": "06/08/2026", "termino": "06/08/2026", "status": "⏳ Pendente"}, {"id": 250, "fase": "SR(11)RS", "atividade": "Envio do Caderno de testes (e-mail)", "tempo": "2h", "responsavel": "GrupoNTSEC", "inicio": "06/08/2026", "termino": "06/08/2026", "status": "⏳ Pendente"}, {"id": 251, "fase": "SR(11)RS", "atividade": "Conferência do box e versão do equipamento (instalação física)", "tempo": "4h", "responsavel": "GrupoNTSEC/INCRA", "inicio": "06/08/2026", "termino": "06/08/2026", "status": "⏳ Pendente"}, {"id": 252, "fase": "SR(11)RS", "atividade": "Reunião remota para configuração e atualização dos dispositivos", "tempo": "4h", "responsavel": "GrupoNTSEC/INCRA", "inicio": "06/08/2026", "termino": "06/08/2026", "status": "⏳ Pendente"}, {"id": 253, "fase": "SR(11)RS", "atividade": "Janela de Migração", "tempo": "4h", "responsavel": "GrupoNTSEC/INCRA", "inicio": "06/08/2026", "termino": "06/08/2026", "status": "⏳ Pendente"}, {"id": 254, "fase": "SR(11)RS", "atividade": "Execução do caderno de testes e Validação", "tempo": "1h", "responsavel": "GrupoNTSEC/INCRA", "inicio": "06/08/2026", "termino": "06/08/2026", "status": "⏳ Pendente"}, {"id": 255, "fase": "SR(11)RS", "atividade": "Day after, acompanhamento pós migração", "tempo": "4h", "responsavel": "GrupoNTSEC/INCRA", "inicio": "07/08/2026", "termino": "07/08/2026", "status": "⏳ Pendente"}, {"id": 256, "fase": "SR(11)RS", "atividade": "Elaboração do Relatório Técnico da Atividade", "tempo": "4h", "responsavel": "GrupoNTSEC", "inicio": "07/08/2026", "termino": "07/08/2026", "status": "⏳ Pendente"}, {"id": 257, "fase": "SR(10)SC", "atividade": "Instalação física dos equipamentos", "tempo": "2h", "responsavel": "GrupoNTSEC", "inicio": "11/08/2026", "termino": "11/08/2026", "status": "⏳ Pendente"}, {"id": 258, "fase": "SR(10)SC", "atividade": "Envio do backup das configurações", "tempo": "2h", "responsavel": "GrupoNTSEC/INCRA", "inicio": "11/08/2026", "termino": "11/08/2026", "status": "⏳ Pendente"}, {"id": 259, "fase": "SR(10)SC", "atividade": "Envio do Caderno de testes (e-mail)", "tempo": "2h", "responsavel": "GrupoNTSEC", "inicio": "11/08/2026", "termino": "11/08/2026", "status": "⏳ Pendente"}, {"id": 260, "fase": "SR(10)SC", "atividade": "Conferência do box e versão do equipamento (instalação física)", "tempo": "4h", "responsavel": "GrupoNTSEC/INCRA", "inicio": "11/08/2026", "termino": "11/08/2026", "status": "⏳ Pendente"}, {"id": 261, "fase": "SR(10)SC", "atividade": "Reunião remota para configuração e atualização dos dispositivos", "tempo": "4h", "responsavel": "GrupoNTSEC/INCRA", "inicio": "11/08/2026", "termino": "11/08/2026", "status": "⏳ Pendente"}, {"id": 262, "fase": "SR(10)SC", "atividade": "Janela de Migração", "tempo": "4h", "responsavel": "GrupoNTSEC/INCRA", "inicio": "11/08/2026", "termino": "11/08/2026", "status": "⏳ Pendente"}, {"id": 263, "fase": "SR(10)SC", "atividade": "Execução do caderno de testes e Validação", "tempo": "1h", "responsavel": "GrupoNTSEC/INCRA", "inicio": "11/08/2026", "termino": "11/08/2026", "status": "⏳ Pendente"}, {"id": 264, "fase": "SR(10)SC", "atividade": "Day after, acompanhamento pós migração", "tempo": "4h", "responsavel": "GrupoNTSEC/INCRA", "inicio": "12/08/2026", "termino": "12/08/2026", "status": "⏳ Pendente"}, {"id": 265, "fase": "SR(10)SC", "atividade": "Elaboração do Relatório Técnico da Atividade", "tempo": "4h", "responsavel": "GrupoNTSEC", "inicio": "12/08/2026", "termino": "12/08/2026", "status": "⏳ Pendente"}, {"id": 266, "fase": "SR(23)SE", "atividade": "Instalação física dos equipamentos", "tempo": "2h", "responsavel": "GrupoNTSEC", "inicio": "13/08/2026", "termino": "13/08/2026", "status": "⏳ Pendente"}, {"id": 267, "fase": "SR(23)SE", "atividade": "Envio do backup das configurações", "tempo": "2h", "responsavel": "GrupoNTSEC/INCRA", "inicio": "13/08/2026", "termino": "13/08/2026", "status": "⏳ Pendente"}, {"id": 268, "fase": "SR(23)SE", "atividade": "Envio do Caderno de testes (e-mail)", "tempo": "2h", "responsavel": "GrupoNTSEC", "inicio": "13/08/2026", "termino": "13/08/2026", "status": "⏳ Pendente"}, {"id": 269, "fase": "SR(23)SE", "atividade": "Conferência do box e versão do equipamento (instalação física)", "tempo": "4h", "responsavel": "GrupoNTSEC/INCRA", "inicio": "13/08/2026", "termino": "13/08/2026", "status": "⏳ Pendente"}, {"id": 270, "fase": "SR(23)SE", "atividade": "Reunião remota para configuração e atualização dos dispositivos", "tempo": "4h", "responsavel": "GrupoNTSEC/INCRA", "inicio": "13/08/2026", "termino": "13/08/2026", "status": "⏳ Pendente"}, {"id": 271, "fase": "SR(23)SE", "atividade": "Janela de Migração", "tempo": "4h", "responsavel": "GrupoNTSEC/INCRA", "inicio": "13/08/2026", "termino": "13/08/2026", "status": "⏳ Pendente"}, {"id": 272, "fase": "SR(23)SE", "atividade": "Execução do caderno de testes e Validação", "tempo": "1h", "responsavel": "GrupoNTSEC/INCRA", "inicio": "13/08/2026", "termino": "13/08/2026", "status": "⏳ Pendente"}, {"id": 273, "fase": "SR(23)SE", "atividade": "Day after, acompanhamento pós migração", "tempo": "4h", "responsavel": "GrupoNTSEC/INCRA", "inicio": "14/08/2026", "termino": "14/08/2026", "status": "⏳ Pendente"}, {"id": 274, "fase": "SR(23)SE", "atividade": "Elaboração do Relatório Técnico da Atividade", "tempo": "4h", "responsavel": "GrupoNTSEC", "inicio": "14/08/2026", "termino": "14/08/2026", "status": "⏳ Pendente"}, {"id": 275, "fase": "SR (08)SP", "atividade": "Instalação física dos equipamentos", "tempo": "2h", "responsavel": "GrupoNTSEC", "inicio": "18/08/2026", "termino": "18/08/2026", "status": "⏳ Pendente"}, {"id": 276, "fase": "SR (08)SP", "atividade": "Envio do backup das configurações", "tempo": "2h", "responsavel": "GrupoNTSEC/INCRA", "inicio": "18/08/2026", "termino": "18/08/2026", "status": "⏳ Pendente"}, {"id": 277, "fase": "SR (08)SP", "atividade": "Envio do Caderno de testes (e-mail)", "tempo": "2h", "responsavel": "GrupoNTSEC", "inicio": "18/08/2026", "termino": "18/08/2026", "status": "⏳ Pendente"}, {"id": 278, "fase": "SR (08)SP", "atividade": "Conferência do box e versão do equipamento (instalação física)", "tempo": "4h", "responsavel": "GrupoNTSEC/INCRA", "inicio": "18/08/2026", "termino": "18/08/2026", "status": "⏳ Pendente"}, {"id": 279, "fase": "SR (08)SP", "atividade": "Reunião remota para configuração e atualização dos dispositivos", "tempo": "4h", "responsavel": "GrupoNTSEC/INCRA", "inicio": "18/08/2026", "termino": "18/08/2026", "status": "⏳ Pendente"}, {"id": 280, "fase": "SR (08)SP", "atividade": "Janela de Migração", "tempo": "4h", "responsavel": "GrupoNTSEC/INCRA", "inicio": "18/08/2026", "termino": "18/08/2026", "status": "⏳ Pendente"}, {"id": 281, "fase": "SR (08)SP", "atividade": "Execução do caderno de testes e Validação", "tempo": "1h", "responsavel": "GrupoNTSEC/INCRA", "inicio": "18/08/2026", "termino": "18/08/2026", "status": "⏳ Pendente"}, {"id": 282, "fase": "SR (08)SP", "atividade": "Day after, acompanhamento pós migração", "tempo": "4h", "responsavel": "GrupoNTSEC/INCRA", "inicio": "19/08/2026", "termino": "19/08/2026", "status": "⏳ Pendente"}, {"id": 283, "fase": "SR (08)SP", "atividade": "Elaboração do Relatório Técnico da Atividade", "tempo": "4h", "responsavel": "GrupoNTSEC", "inicio": "19/08/2026", "termino": "19/08/2026", "status": "⏳ Pendente"}, {"id": 284, "fase": "SR(26)TO", "atividade": "Instalação física dos equipamentos", "tempo": "2h", "responsavel": "GrupoNTSEC", "inicio": "20/08/202", "termino": "20/08/202", "status": "⏳ Pendente"}, {"id": 285, "fase": "SR(26)TO", "atividade": "Envio do backup das configurações", "tempo": "2h", "responsavel": "GrupoNTSEC/INCRA", "inicio": "20/08/202", "termino": "20/08/202", "status": "⏳ Pendente"}, {"id": 286, "fase": "SR(26)TO", "atividade": "Envio do Caderno de testes (e-mail)", "tempo": "2h", "responsavel": "GrupoNTSEC", "inicio": "20/08/202", "termino": "20/08/202", "status": "⏳ Pendente"}, {"id": 287, "fase": "SR(26)TO", "atividade": "Conferência do box e versão do equipamento (instalação física)", "tempo": "4h", "responsavel": "GrupoNTSEC/INCRA", "inicio": "20/08/202", "termino": "20/08/202", "status": "⏳ Pendente"}, {"id": 288, "fase": "SR(26)TO", "atividade": "Reunião remota para configuração e atualização dos dispositivos", "tempo": "4h", "responsavel": "GrupoNTSEC/INCRA", "inicio": "20/08/202", "termino": "20/08/202", "status": "⏳ Pendente"}, {"id": 289, "fase": "SR(26)TO", "atividade": "Janela de Migração", "tempo": "4h", "responsavel": "GrupoNTSEC/INCRA", "inicio": "20/08/202", "termino": "20/08/202", "status": "⏳ Pendente"}, {"id": 290, "fase": "SR(26)TO", "atividade": "Execução do caderno de testes e Validação", "tempo": "1h", "responsavel": "GrupoNTSEC/INCRA", "inicio": "20/08/202", "termino": "20/08/202", "status": "⏳ Pendente"}, {"id": 291, "fase": "SR(26)TO", "atividade": "Day after, acompanhamento pós migração", "tempo": "4h", "responsavel": "GrupoNTSEC/INCRA", "inicio": "21/08/2026", "termino": "21/08/2026", "status": "⏳ Pendente"}, {"id": 292, "fase": "SR(26)TO", "atividade": "Elaboração do Relatório Técnico da Atividade", "tempo": "4h", "responsavel": "GrupoNTSEC", "inicio": "21/08/2026", "termino": "21/08/2026", "status": "⏳ Pendente"}, {"id": 293, "fase": "Encerramento", "atividade": "Repasse para o Suporte/Cliente", "tempo": "2h", "responsavel": "GrupoNTSEC/INCRA", "inicio": "30/08/2026", "termino": "30/08/2026", "status": "⏳ Pendente"}, {"id": 294, "fase": "Encerramento", "atividade": "Reunião de encerramento", "tempo": "1h", "responsavel": "GrupoNTSEC/INCRA", "inicio": "02/09/2026", "termino": "02/09/2026", "status": "⏳ Pendente"}], "planejadas": [{"id": 6, "num": 6, "atividade": "Repasse de Conhecimento", "descricao": "Treinamento e repasse de conhecimento das configurações implementadas para equipe técnica do INCRA.", "proximos": "Agendamento de sessões de repasse com equipe INCRA.", "clientes": "SEDE-DF", "equipe": "GrupoNTSEC/INCRA"}, {"id": 7, "num": 7, "atividade": "Reunião de Encerramento do Projeto", "descricao": "Reunião formal de encerramento com validação de todos os entregáveis e aceite do cliente.", "proximos": "Agendamento com todas as partes. Preparação do relatório final.", "clientes": "INCRA / NTsec", "equipe": "GrupoNTSEC/INCRA"}], "concluidas": [{"id": 1, "num": 1, "atividade": "Kickoff e Planejamento", "descricao": "Reunião de Kickoff com equipes INCRA e NTsec", "periodo": "Apr/2026"}, {"id": 2, "num": 2, "atividade": "Kickoff e Planejamento", "descricao": "Elaboração e entrega do Projeto Executivo", "periodo": "May/2026"}]};
+
+// Persistence
+let DB;
+try { DB = JSON.parse(localStorage.getItem('incra26') || 'null') || structuredClone(SEED); }
+catch(e) { DB = structuredClone(SEED); }
+DB.nextId = DB.nextId || 500;
+function save(){ try{ localStorage.setItem('incra26', JSON.stringify(DB)); }catch(e){} }
+
+// ─ Helpers ─────────────────────────────────────────
+function uid(){ return ++DB.nextId; }
+function esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function g(id){ const el=document.getElementById(id); return el ? el.value.trim() : ''; }
+
+const STATUS_CLASS = { 'Concluído':'bg', 'Em Andamento':'bc', 'Pendente':'bm',
+  '✅ Concluído':'bg', '🔄 Em Andamento':'bc', '⏳ Pendente':'bm',
+  'Entregue':'bg', 'Em trânsito':'by', 'Pendente de entrega':'bm' };
+const STATUS_COL  = { 'Concluído':'var(--green)', 'Em Andamento':'var(--cyan)', 'Pendente':'var(--t3)',
+  '✅ Concluído':'var(--green)', '🔄 Em Andamento':'var(--cyan)', '⏳ Pendente':'var(--t3)' };
+const PROG_COL = p => p===100 ? 'var(--green)' : p>0 ? 'var(--cyan)' : 'var(--t3)';
+
+function badge(s, cls){ return `<span class="badge ${cls||STATUS_CLASS[s]||'bm'}">${esc(s)}</span>`; }
+
+function progBar(p){
+  const col = PROG_COL(p);
+  return `<div class="prog-wrap"><div class="prog-bar"><div class="prog-fill" style="width:${p}%;background:${col}"></div></div><div class="prog-pct" style="color:${col}">${p}%</div></div>`;
+}
+
+// ─ Toast ────────────────────────────────────────────
+function toast(msg, type='ok'){
+  const w = document.getElementById('toasts');
+  const t = document.createElement('div');
+  t.className = `toast ${type}`;
+  const icon = type==='ok'?'✓':type==='err'?'✕':'⚠';
+  t.innerHTML = `<span style="color:${type==='ok'?'var(--green)':type==='err'?'var(--red)':'var(--yellow)'}">${icon}</span>${esc(msg)}`;
+  w.appendChild(t);
+  setTimeout(()=>{ t.style.animation='none'; t.style.opacity='0'; t.style.transform='translateX(20px)'; t.style.transition='.25s'; setTimeout(()=>t.remove(),250); }, 2800);
+}
+
+// ─ Nav ──────────────────────────────────────────────
+const TITLES = { dashboard:'Dashboard', unidades:'Status das Unidades', cronograma:'Cronograma', planejadas:'Atividades Planejadas', concluidas:'Atividades Concluídas' };
+document.querySelectorAll('.nav-item').forEach(el=>{
+  el.addEventListener('click',()=>{
+    document.querySelectorAll('.nav-item,.view').forEach(x=>x.classList.remove('active'));
+    el.classList.add('active');
+    const v = el.dataset.view;
+    document.getElementById('view-'+v).classList.add('active');
+    document.getElementById('topTitle').textContent = TITLES[v]||'';
+    renderAll();
+  });
+});
+
+// Clock
+setInterval(()=>{ document.getElementById('clock').textContent = new Date().toLocaleString('pt-BR',{dateStyle:'short',timeStyle:'medium'}); }, 1000);
+
+// ═══════════════════════════════════════════════════
+//  DASHBOARD
+// ═══════════════════════════════════════════════════
+function renderDashboard(){
+  const u = DB.unidades;
+  const total = u.length;
+  const conc  = u.filter(x=>x.status==='Concluído').length;
+  const anda  = u.filter(x=>x.status==='Em Andamento').length;
+  const pend  = u.filter(x=>x.status==='Pendente').length;
+  const equip = u.reduce((a,x)=>a+(x.qtde||0),0);
+  const pct   = total ? Math.round(conc/total*100) : 0;
+
+  document.getElementById('kpiRow').innerHTML = `
+    <div class="kpi c-cyan">
+      <div class="kpi-label">Total de SRs</div>
+      <div class="kpi-value">${total}</div>
+      <div class="kpi-sub">Unidades cadastradas</div>
+    </div>
+    <div class="kpi c-green">
+      <div class="kpi-label">Concluídas</div>
+      <div class="kpi-value">${conc}</div>
+      <div class="kpi-sub">${pct}% do total</div>
+      <div class="kpi-bar"><div class="kpi-bar-fill" style="width:${pct}%"></div></div>
+    </div>
+    <div class="kpi c-yellow">
+      <div class="kpi-label">Em Andamento</div>
+      <div class="kpi-value">${anda}</div>
+      <div class="kpi-sub">em execução agora</div>
+    </div>
+    <div class="kpi c-orange">
+      <div class="kpi-label">Pendentes</div>
+      <div class="kpi-value">${pend}</div>
+      <div class="kpi-sub">aguardando início</div>
+    </div>
+    <div class="kpi c-purple">
+      <div class="kpi-label">Equipamentos</div>
+      <div class="kpi-value">${equip}</div>
+      <div class="kpi-sub">unidades no projeto</div>
+    </div>
+    <div class="kpi c-cyan">
+      <div class="kpi-label">Progresso Geral</div>
+      <div class="kpi-value">${pct}%</div>
+      <div class="kpi-bar"><div class="kpi-bar-fill" style="width:${pct}%"></div></div>
+    </div>`;
+
+  // Status bars
+  const stList = [
+    { l:'✅ Concluído', n:conc, col:'var(--green)' },
+    { l:'🔄 Em Andamento', n:anda, col:'var(--cyan)' },
+    { l:'⏳ Pendente', n:pend, col:'var(--t3)' },
+  ];
+  document.getElementById('dashStatus').innerHTML = stList.map(s=>{
+    const p = total ? Math.round(s.n/total*100) : 0;
+    return `<div class="dash-prog-row">
+      <div class="dash-prog-label">${s.l}</div>
+      <div class="dash-prog-count" style="color:${s.col}">${s.n}</div>
+      <div class="dash-prog-bar"><div class="dash-prog-fill" style="width:${p}%;background:${s.col}"></div></div>
+      <div class="dash-prog-pct">${p}%</div>
+    </div>`;
+  }).join('');
+
+  // Entrega bars
+  const entList = ['Entregue','Em trânsito','Pendente de entrega'];
+  const entCol  = ['var(--green)','var(--yellow)','var(--orange)'];
+  document.getElementById('dashEntrega').innerHTML = entList.map((e,i)=>{
+    const n = u.filter(x=>x.entrega===e).length;
+    const p = total ? Math.round(n/total*100) : 0;
+    return `<div class="dash-prog-row">
+      <div class="dash-prog-label">${e}</div>
+      <div class="dash-prog-count" style="color:${entCol[i]}">${n}</div>
+      <div class="dash-prog-bar"><div class="dash-prog-fill" style="width:${p}%;background:${entCol[i]}"></div></div>
+      <div class="dash-prog-pct">${p}%</div>
+    </div>`;
+  }).join('');
+
+  // Estados
+  const estados = [...new Set(u.map(x=>x.estado))].sort();
+  document.getElementById('dashEstados').innerHTML = `<div class="state-grid">`+
+    estados.map(e=>{
+      const cnt  = u.filter(x=>x.estado===e).length;
+      const done = u.filter(x=>x.estado===e&&x.status==='Concluído').length;
+      return `<div class="state-card"><div class="state-uf">${e}</div><div class="state-count">${cnt}</div><div class="state-sub">${done} conc.</div></div>`;
+    }).join('')+'</div>';
+}
+
+// ═══════════════════════════════════════════════════
+//  UNIDADES
+// ═══════════════════════════════════════════════════
+function renderUnidades(){
+  const q   = g('uSearch').toLowerCase();
+  const sts = g('uStatus');
+  const est = g('uEstado');
+  const ent = g('uEntrega');
+
+  // repopulate estado filter
+  const curEst = document.getElementById('uEstado').value;
+  const ests = [...new Set(DB.unidades.map(x=>x.estado))].sort();
+  document.getElementById('uEstado').innerHTML = '<option value="">Todos os Estados</option>'+
+    ests.map(e=>`<option${e===curEst?' selected':''}>${e}</option>`).join('');
+
+  let rows = DB.unidades.filter(u=>{
+    if(q && ![u.sigla,u.nome,u.cidade,u.analista].join(' ').toLowerCase().includes(q)) return false;
+    if(sts && u.status!==sts) return false;
+    if(est && u.estado!==est) return false;
+    if(ent && u.entrega!==ent) return false;
+    return true;
+  });
+  document.getElementById('uCount').textContent = `${rows.length} resultado${rows.length!==1?'s':''}`;
+  document.getElementById('nb-unidades').textContent = DB.unidades.length;
+
+  if(!rows.length){
+    document.getElementById('unidadesBody').innerHTML = `<tr><td colspan="11"><div class="empty"><div class="empty-icon">🔍</div><div class="empty-txt">Nenhuma unidade encontrada</div></div></td></tr>`;
+    return;
+  }
+  document.getElementById('unidadesBody').innerHTML = rows.map(u=>`
+    <tr>
+      <td class="col-num">${u.num}</td>
+      <td><div class="td-main" style="color:var(--cyan);font-family:var(--mono);font-size:12px">${esc(u.sigla)}</div></td>
+      <td><div class="td-main">${esc(u.nome)}</div></td>
+      <td><div class="td-mono">${esc(u.cidade)}</div><div style="font-family:var(--mono);font-size:10px;color:var(--cyan);margin-top:2px">${esc(u.estado)}</div></td>
+      <td style="max-width:180px;font-size:11px;color:var(--t2)">${esc(u.analista)}</td>
+      <td style="text-align:center;font-family:var(--mono);font-weight:700;color:var(--purple)">${u.qtde}</td>
+      <td class="td-mono">${esc(u.nf)}</td>
+      <td>${badge(u.entrega)}</td>
+      <td>
+        <select class="sel-status" style="color:${STATUS_COL[u.status]||'var(--t3)'}" onchange="updateUnit(${u.id},'status',this.value)">
+          <option${u.status==='Pendente'?' selected':''}>Pendente</option>
+          <option${u.status==='Em Andamento'?' selected':''}>Em Andamento</option>
+          <option${u.status==='Concluído'?' selected':''}>Concluído</option>
+        </select>
+      </td>
+      <td>${progBar(u.progresso)}</td>
+      <td>
+        <div style="display:flex;gap:4px">
+          <button class="btn btn-ghost btn-sm" onclick="editUnit(${u.id})">✎</button>
+          <button class="btn btn-danger btn-sm" onclick="del('unidades',${u.id})">✕</button>
+        </div>
+      </td>
+    </tr>`).join('');
+}
+
+function updateUnit(id,field,val){
+  const u = DB.unidades.find(x=>x.id===id); if(!u) return;
+  u[field] = val;
+  if(field==='status') u.progresso = val==='Concluído'?100:val==='Em Andamento'?50:0;
+  save(); renderAll(); toast('Status atualizado');
+}
+
+// ═══════════════════════════════════════════════════
+//  CRONOGRAMA
+// ═══════════════════════════════════════════════════
+const PHASE_COL = {
+  'INICIAÇÃO':'var(--purple)','PLANEJAMENTO':'var(--cyan)','Migração SMS':'var(--yellow)',
+  'Encerramento':'var(--green)'
+};
+function phaseColor(f){ return PHASE_COL[f] || 'var(--orange)'; }
+
+function renderCronograma(){
+  const q   = g('cSearch').toLowerCase();
+  const sts = g('cStatus');
+
+  let data = DB.cronograma.filter(c=>{
+    if(q && ![c.fase,c.atividade,c.responsavel].join(' ').toLowerCase().includes(q)) return false;
+    if(sts && c.status!==sts) return false;
+    return true;
+  });
+  document.getElementById('cCount').textContent = `${data.length} atividade${data.length!==1?'s':''}`;
+  document.getElementById('nb-crono').textContent = DB.cronograma.length;
+
+  const phases = [...new Set(data.map(c=>c.fase))];
+  const wrap = document.getElementById('timeline');
+  if(!phases.length){ wrap.innerHTML = '<div class="empty"><div class="empty-icon">📅</div><div class="empty-txt">Nenhuma atividade encontrada</div></div>'; return; }
+
+  wrap.innerHTML = phases.map(fase=>{
+    const items = data.filter(c=>c.fase===fase);
+    const done  = items.filter(x=>x.status==='✅ Concluído').length;
+    const pct   = items.length ? Math.round(done/items.length*100) : 0;
+    const col   = phaseColor(fase);
+    const allItems = DB.cronograma.filter(c=>c.fase===fase);
+    const totalDone = allItems.filter(x=>x.status==='✅ Concluído').length;
+    return `
+    <div class="tl-phase">
+      <div class="tl-ph-head open" onclick="togglePhase(this)">
+        <div class="tl-ph-dot" style="background:${col}"></div>
+        <div class="tl-ph-name">${esc(fase)}</div>
+        <div class="tl-ph-stats">${totalDone}/${allItems.length} conc.</div>
+        <div class="tl-ph-prog">
+          <div class="prog-bar"><div class="prog-fill" style="width:${pct}%;background:${col}"></div></div>
+          <div style="font-family:var(--mono);font-size:10px;color:var(--t3);min-width:30px">${pct}%</div>
+        </div>
+        <div class="tl-ph-arrow">▶</div>
+      </div>
+      <div class="tl-items open">
+        ${items.map(c=>`
+        <div class="tl-item">
+          <div class="tl-item-name">${esc(c.atividade)}</div>
+          <div class="tl-item-time">${esc(c.tempo)}</div>
+          <div class="tl-item-resp">${esc(c.responsavel)}</div>
+          <div class="tl-item-date">${esc(c.inicio)}</div>
+          <div>
+            <select style="background:transparent;border:none;font-family:var(--mono);font-size:10px;cursor:pointer;outline:none;color:${STATUS_COL[c.status]||'var(--t3)'}" onchange="updateCrono(${c.id},this.value)">
+              <option${c.status==='⏳ Pendente'?' selected':''}>⏳ Pendente</option>
+              <option${c.status==='🔄 Em Andamento'?' selected':''}>🔄 Em Andamento</option>
+              <option${c.status==='✅ Concluído'?' selected':''}>✅ Concluído</option>
+            </select>
+          </div>
+          <div class="tl-item-actions">
+            <button class="btn btn-ghost btn-sm" onclick="editCrono(${c.id})">✎</button>
+            <button class="btn btn-danger btn-sm" onclick="del('cronograma',${c.id})">✕</button>
+          </div>
+        </div>`).join('')}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function togglePhase(el){
+  el.classList.toggle('open');
+  el.nextElementSibling.classList.toggle('open');
+}
+function updateCrono(id,val){
+  const c = DB.cronograma.find(x=>x.id===id); if(!c) return;
+  c.status = val; save(); renderCronograma(); toast('Status atualizado');
+}
+
+// ═══════════════════════════════════════════════════
+//  PLANEJADAS
+// ═══════════════════════════════════════════════════
+function renderPlanejadas(){
+  document.getElementById('nb-plan').textContent = DB.planejadas.length;
+  const el = document.getElementById('planCards');
+  if(!DB.planejadas.length){
+    el.innerHTML = '<div class="empty"><div class="empty-icon">🎯</div><div class="empty-txt">Nenhuma atividade planejada</div></div>';
+    return;
+  }
+  el.innerHTML = DB.planejadas.map(p=>`
+    <div class="card">
+      <div class="card-num">ATIVIDADE ${p.num}</div>
+      <div class="card-title">${esc(p.atividade)}</div>
+      <div class="card-desc">${esc(p.descricao)}</div>
+      <div class="card-prox-label">Próximos Passos</div>
+      <div class="card-prox">${esc(p.proximos)}</div>
+      <div class="card-footer">
+        <div class="card-tags">
+          ${p.clientes?`<span class="badge bc">${esc(p.clientes)}</span>`:''}
+          ${p.equipe?`<span class="badge bm" style="max-width:140px;overflow:hidden;text-overflow:ellipsis">${esc(p.equipe.split('[')[0].trim())}</span>`:''}
+        </div>
+        <div class="card-actions">
+          <button class="btn btn-ghost btn-sm" onclick="editPlanned(${p.id})">✎</button>
+          <button class="btn btn-danger btn-sm" onclick="del('planejadas',${p.id})">✕</button>
+        </div>
+      </div>
+    </div>`).join('');
+}
+
+// ═══════════════════════════════════════════════════
+//  CONCLUÍDAS
+// ═══════════════════════════════════════════════════
+function renderConcluidas(){
+  document.getElementById('nb-done').textContent = DB.concluidas.length;
+  const el = document.getElementById('doneBody');
+  if(!DB.concluidas.length){
+    el.innerHTML = `<tr><td colspan="5"><div class="empty"><div class="empty-icon">✅</div><div class="empty-txt">Nenhuma atividade concluída</div></div></td></tr>`;
+    return;
+  }
+  el.innerHTML = DB.concluidas.map(c=>`
+    <tr>
+      <td><div class="done-num">${c.num}</div></td>
+      <td><div class="td-main" style="color:var(--cyan)">${esc(c.atividade)}</div></td>
+      <td style="font-size:12px;color:var(--t2)">${esc(c.descricao)}</td>
+      <td>${badge(c.periodo||'—','bg')}</td>
+      <td><button class="btn btn-danger btn-sm" onclick="del('concluidas',${c.id})">✕</button></td>
+    </tr>`).join('');
+}
+
+// ═══════════════════════════════════════════════════
+//  DELETE
+// ═══════════════════════════════════════════════════
+function del(col,id){
+  if(!confirm('Confirmar exclusão?')) return;
+  DB[col] = DB[col].filter(x=>x.id!==id);
+  save(); renderAll(); toast('Item excluído','warn');
+}
+
+// ═══════════════════════════════════════════════════
+//  MODALS
+// ═══════════════════════════════════════════════════
+function openModal(type, data=null){
+  const ov = document.getElementById('overlay');
+  const mt = document.getElementById('mTitle');
+  const mb = document.getElementById('mBody');
+  ov.classList.add('open');
+
+  if(type==='addUnit'||type==='editUnit'){
+    mt.innerHTML = `${data?'<span>Editar</span>':'<span>Nova</span>'} Unidade`;
+    mb.innerHTML = `
+      <div class="frow">
+        <div class="fgrp"><label class="flabel">Nº</label><input class="finput" id="fn" type="number" value="${esc(data?.num||'')}"/></div>
+        <div class="fgrp"><label class="flabel">Sigla SR</label><input class="finput" id="fsigla" value="${esc(data?.sigla||'')}"/></div>
+      </div>
+      <div class="fgrp"><label class="flabel">Nome da Unidade</label><input class="finput" id="fnome" value="${esc(data?.nome||'')}"/></div>
+      <div class="frow">
+        <div class="fgrp"><label class="flabel">Cidade</label><input class="finput" id="fcidade" value="${esc(data?.cidade||'')}"/></div>
+        <div class="fgrp"><label class="flabel">Estado (UF)</label><input class="finput" id="festado" maxlength="2" value="${esc(data?.estado||'')}"/></div>
+      </div>
+      <div class="fgrp"><label class="flabel">Analista NTI</label><input class="finput" id="fanalista" value="${esc(data?.analista||'')}"/></div>
+      <div class="frow">
+        <div class="fgrp"><label class="flabel">Qtde Equip.</label><input class="finput" id="fqtde" type="number" value="${data?.qtde??2}"/></div>
+        <div class="fgrp"><label class="flabel">NF</label><input class="finput" id="fnf" value="${esc(data?.nf||'')}"/></div>
+      </div>
+      <div class="fgrp"><label class="flabel">Nº de Série</label><input class="finput" id="fserie" value="${esc(data?.serie||'')}"/></div>
+      <div class="frow">
+        <div class="fgrp"><label class="flabel">Entrega</label>
+          <select class="fsel" id="fentrega">
+            ${['Entregue','Em trânsito','Pendente de entrega'].map(o=>`<option${data?.entrega===o?' selected':''}>${o}</option>`).join('')}
+          </select>
+        </div>
+        <div class="fgrp"><label class="flabel">Status Inst.</label>
+          <select class="fsel" id="fstatus">
+            ${['Pendente','Em Andamento','Concluído'].map(o=>`<option${data?.status===o?' selected':''}>${o}</option>`).join('')}
+          </select>
+        </div>
+      </div>
+      <div class="fgrp"><label class="flabel">Progresso (%)</label><input class="finput" id="fprog" type="number" min="0" max="100" value="${data?.progresso??0}"/></div>
+      <div class="modal-footer">
+        <button class="btn btn-ghost" onclick="closeModal()">Cancelar</button>
+        <button class="btn btn-primary" onclick="saveUnit(${data?.id||0})">Salvar</button>
+      </div>`;
+  }
+
+  if(type==='addCrono'||type==='editCrono'){
+    mt.innerHTML = `${data?'<span>Editar</span>':'<span>Nova</span>'} Atividade — Cronograma`;
+    const fases = [...new Set(DB.cronograma.map(c=>c.fase))];
+    mb.innerHTML = `
+      <div class="frow">
+        <div class="fgrp"><label class="flabel">Fase / SR</label>
+          <input class="finput" id="ffase" list="dl_fases" value="${esc(data?.fase||'')}"/>
+          <datalist id="dl_fases">${fases.map(f=>`<option value="${esc(f)}">`).join('')}</datalist>
+        </div>
+        <div class="fgrp"><label class="flabel">Tempo</label><input class="finput" id="ftempo" placeholder="4h" value="${esc(data?.tempo||'')}"/></div>
+      </div>
+      <div class="fgrp"><label class="flabel">Atividade</label><input class="finput" id="fativ" value="${esc(data?.atividade||'')}"/></div>
+      <div class="fgrp"><label class="flabel">Responsável</label><input class="finput" id="fresp" value="${esc(data?.responsavel||'GrupoNTSEC/INCRA')}"/></div>
+      <div class="frow">
+        <div class="fgrp"><label class="flabel">Início</label><input class="finput" id="finicio" placeholder="dd/mm/aaaa" value="${esc(data?.inicio||'')}"/></div>
+        <div class="fgrp"><label class="flabel">Término</label><input class="finput" id="ftermino" placeholder="dd/mm/aaaa" value="${esc(data?.termino||'')}"/></div>
+      </div>
+      <div class="fgrp"><label class="flabel">Status</label>
+        <select class="fsel" id="fcstatus">
+          ${['⏳ Pendente','🔄 Em Andamento','✅ Concluído'].map(o=>`<option${data?.status===o?' selected':''}>${o}</option>`).join('')}
+        </select>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-ghost" onclick="closeModal()">Cancelar</button>
+        <button class="btn btn-primary" onclick="saveCrono(${data?.id||0})">Salvar</button>
+      </div>`;
+  }
+
+  if(type==='addPlanned'||type==='editPlanned'){
+    mt.innerHTML = `${data?'<span>Editar</span>':'<span>Nova</span>'} Atividade Planejada`;
+    mb.innerHTML = `
+      <div class="fgrp"><label class="flabel">Atividade</label><input class="finput" id="fativ" value="${esc(data?.atividade||'')}"/></div>
+      <div class="fgrp"><label class="flabel">Descrição</label><textarea class="ftxt" id="fdesc">${esc(data?.descricao||'')}</textarea></div>
+      <div class="fgrp"><label class="flabel">Próximos Passos</label><textarea class="ftxt" id="fprox">${esc(data?.proximos||'')}</textarea></div>
+      <div class="frow">
+        <div class="fgrp"><label class="flabel">Clientes / SRs</label><input class="finput" id="fcli" value="${esc(data?.clientes||'')}"/></div>
+        <div class="fgrp"><label class="flabel">Equipe</label><input class="finput" id="fequipe" value="${esc(data?.equipe||'')}"/></div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-ghost" onclick="closeModal()">Cancelar</button>
+        <button class="btn btn-primary" onclick="savePlanned(${data?.id||0})">Salvar</button>
+      </div>`;
+  }
+
+  if(type==='addDone'){
+    mt.innerHTML = `<span>Registrar</span> Atividade Concluída`;
+    mb.innerHTML = `
+      <div class="fgrp"><label class="flabel">Atividade</label><input class="finput" id="fativ"/></div>
+      <div class="fgrp"><label class="flabel">Descrição</label><textarea class="ftxt" id="fdesc"></textarea></div>
+      <div class="fgrp"><label class="flabel">Período</label><input class="finput" id="fperiodo" placeholder="Jun/2026"/></div>
+      <div class="modal-footer">
+        <button class="btn btn-ghost" onclick="closeModal()">Cancelar</button>
+        <button class="btn btn-primary" onclick="saveDone()">Salvar</button>
+      </div>`;
+  }
+}
+function closeModal(){ document.getElementById('overlay').classList.remove('open'); }
+
+function editUnit(id){ openModal('editUnit', DB.unidades.find(x=>x.id===id)); }
+function editCrono(id){ openModal('editCrono', DB.cronograma.find(x=>x.id===id)); }
+function editPlanned(id){ openModal('editPlanned', DB.planejadas.find(x=>x.id===id)); }
+
+function saveUnit(id){
+  if(!g('fsigla')){ toast('Sigla é obrigatória','err'); return; }
+  const obj = { id:id||uid(), num:parseInt(g('fn'))||0, sigla:g('fsigla'), nome:g('fnome'),
+    cidade:g('fcidade'), estado:g('festado').toUpperCase(), analista:g('fanalista'),
+    qtde:parseInt(g('fqtde'))||0, nf:g('fnf'), serie:g('fserie'), entrega:g('fentrega'),
+    status:g('fstatus'), progresso:parseInt(g('fprog'))||0, vol:'', agend_e:'', agend_c:'', analista2:'' };
+  if(obj.status==='Concluído') obj.progresso=100;
+  if(id){ const i=DB.unidades.findIndex(x=>x.id===id); DB.unidades[i]=obj; }
+  else DB.unidades.push(obj);
+  save(); closeModal(); renderAll(); toast(id?'Unidade atualizada!':'Unidade adicionada!');
+}
+
+function saveCrono(id){
+  if(!g('fativ')){ toast('Atividade é obrigatória','err'); return; }
+  const obj = { id:id||uid(), fase:g('ffase'), atividade:g('fativ'), tempo:g('ftempo'),
+    responsavel:g('fresp'), inicio:g('finicio'), termino:g('ftermino'), status:g('fcstatus') };
+  if(id){ const i=DB.cronograma.findIndex(x=>x.id===id); DB.cronograma[i]=obj; }
+  else DB.cronograma.push(obj);
+  save(); closeModal(); renderAll(); toast(id?'Atividade atualizada!':'Atividade adicionada!');
+}
+
+function savePlanned(id){
+  if(!g('fativ')){ toast('Atividade é obrigatória','err'); return; }
+  const maxNum = DB.planejadas.reduce((a,b)=>Math.max(a,b.num||0),0);
+  const obj = { id:id||uid(), num:id?(DB.planejadas.find(x=>x.id===id)?.num||maxNum+1):maxNum+1,
+    atividade:g('fativ'), descricao:g('fdesc'), proximos:g('fprox'), clientes:g('fcli'), equipe:g('fequipe') };
+  if(id){ const i=DB.planejadas.findIndex(x=>x.id===id); DB.planejadas[i]=obj; }
+  else DB.planejadas.push(obj);
+  save(); closeModal(); renderAll(); toast(id?'Atividade atualizada!':'Atividade adicionada!');
+}
+
+function saveDone(){
+  if(!g('fativ')){ toast('Atividade é obrigatória','err'); return; }
+  const maxNum = DB.concluidas.reduce((a,b)=>Math.max(a,b.num||0),0);
+  const obj = { id:uid(), num:maxNum+1, atividade:g('fativ'), descricao:g('fdesc'), periodo:g('fperiodo') };
+  DB.concluidas.push(obj);
+  save(); closeModal(); renderAll(); toast('Atividade concluída registrada!');
+}
+
+// ═══════════════════════════════════════════════════
+//  EXPORT
+// ═══════════════════════════════════════════════════
+function exportJSON(){
+  const b = new Blob([JSON.stringify(DB,null,2)],{type:'application/json'});
+  const a = document.createElement('a'); a.href=URL.createObjectURL(b);
+  a.download='INCRA_NTsec_dados.json'; a.click();
+  toast('Dados exportados!');
+}
+
+// ═══════════════════════════════════════════════════
+//  RENDER ALL
+// ═══════════════════════════════════════════════════
+function renderAll(){
+  renderDashboard();
+  renderUnidades();
+  renderCronograma();
+  renderPlanejadas();
+  renderConcluidas();
+}
+renderAll();
+</script>
+</body>
+</html>
